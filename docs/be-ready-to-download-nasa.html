@@ -1,0 +1,286 @@
+<!DOCTYPE html>
+<html >
+
+<head>
+
+  <meta charset="UTF-8">
+  <meta http-equiv="X-UA-Compatible" content="IE=edge">
+  <title>Road to Prediction</title>
+  <meta name="description" content="Road to Prediction">
+  <meta name="generator" content="bookdown 0.7 and GitBook 2.6.7">
+
+  <meta property="og:title" content="Road to Prediction" />
+  <meta property="og:type" content="book" />
+  
+  
+  
+  <meta name="github-repo" content="senickel/road_to_prediction" />
+
+  <meta name="twitter:card" content="summary" />
+  <meta name="twitter:title" content="Road to Prediction" />
+  
+  
+  
+
+<meta name="author" content="Sebastian Nickel">
+
+
+<meta name="date" content="2018-09-20">
+
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black">
+  
+  
+<link rel="prev" href="extracting-road-data.html">
+
+<script src="libs/jquery-2.2.3/jquery.min.js"></script>
+<link href="libs/gitbook-2.6.7/css/style.css" rel="stylesheet" />
+<link href="libs/gitbook-2.6.7/css/plugin-bookdown.css" rel="stylesheet" />
+<link href="libs/gitbook-2.6.7/css/plugin-highlight.css" rel="stylesheet" />
+<link href="libs/gitbook-2.6.7/css/plugin-search.css" rel="stylesheet" />
+<link href="libs/gitbook-2.6.7/css/plugin-fontsettings.css" rel="stylesheet" />
+
+
+
+
+
+
+
+<script type="text/javascript">
+
+// toggle visibility of R source blocks in R Markdown output
+function toggle_R() {
+  var x = document.getElementsByClassName('r');
+  if (x.length == 0) return;
+  function toggle_vis(o) {
+    var d = o.style.display;
+    o.style.display = (d == 'block' || d == '') ? 'none':'block';
+  }
+
+  for (i = 0; i < x.length; i++) {
+    var y = x[i];
+    if (y.tagName.toLowerCase() === 'pre') toggle_vis(y);
+  }
+
+    var elem = document.getElementById("myButton1");
+    if (elem.value === "Hide Global") elem.value = "Show Global";
+    else elem.value = "Hide Global";
+}
+
+document.write('<input onclick="toggle_R();" type="button" value="Hide Global" id="myButton1" style="position: absolute; top: 10%; right: 2%; z-index: 200"></input>')
+
+</script>
+
+
+<style type="text/css">
+div.sourceCode { overflow-x: auto; }
+table.sourceCode, tr.sourceCode, td.lineNumbers, td.sourceCode {
+  margin: 0; padding: 0; vertical-align: baseline; border: none; }
+table.sourceCode { width: 100%; line-height: 100%; background-color: #f8f8f8; }
+td.lineNumbers { text-align: right; padding-right: 4px; padding-left: 4px; color: #aaaaaa; border-right: 1px solid #aaaaaa; }
+td.sourceCode { padding-left: 5px; }
+pre, code { background-color: #f8f8f8; }
+code > span.kw { color: #204a87; font-weight: bold; } /* Keyword */
+code > span.dt { color: #204a87; } /* DataType */
+code > span.dv { color: #0000cf; } /* DecVal */
+code > span.bn { color: #0000cf; } /* BaseN */
+code > span.fl { color: #0000cf; } /* Float */
+code > span.ch { color: #4e9a06; } /* Char */
+code > span.st { color: #4e9a06; } /* String */
+code > span.co { color: #8f5902; font-style: italic; } /* Comment */
+code > span.ot { color: #8f5902; } /* Other */
+code > span.al { color: #ef2929; } /* Alert */
+code > span.fu { color: #000000; } /* Function */
+code > span.er { color: #a40000; font-weight: bold; } /* Error */
+code > span.wa { color: #8f5902; font-weight: bold; font-style: italic; } /* Warning */
+code > span.cn { color: #000000; } /* Constant */
+code > span.sc { color: #000000; } /* SpecialChar */
+code > span.vs { color: #4e9a06; } /* VerbatimString */
+code > span.ss { color: #4e9a06; } /* SpecialString */
+code > span.im { } /* Import */
+code > span.va { color: #000000; } /* Variable */
+code > span.cf { color: #204a87; font-weight: bold; } /* ControlFlow */
+code > span.op { color: #ce5c00; font-weight: bold; } /* Operator */
+code > span.pp { color: #8f5902; font-style: italic; } /* Preprocessor */
+code > span.ex { } /* Extension */
+code > span.at { color: #c4a000; } /* Attribute */
+code > span.do { color: #8f5902; font-weight: bold; font-style: italic; } /* Documentation */
+code > span.an { color: #8f5902; font-weight: bold; font-style: italic; } /* Annotation */
+code > span.cv { color: #8f5902; font-weight: bold; font-style: italic; } /* CommentVar */
+code > span.in { color: #8f5902; font-weight: bold; font-style: italic; } /* Information */
+</style>
+
+</head>
+
+<body>
+
+
+
+  <div class="book without-animation with-summary font-size-2 font-family-1" data-basepath=".">
+
+    <div class="book-summary">
+      <nav role="navigation">
+
+<ul class="summary">
+<li class="chapter" data-level="" data-path="index.html"><a href="index.html"><i class="fa fa-check"></i>Prerequiste</a></li>
+<li class="chapter" data-level="1" data-path="introduction.html"><a href="introduction.html"><i class="fa fa-check"></i><b>1</b> Introduction</a></li>
+<li class="chapter" data-level="2" data-path="extracting-road-data.html"><a href="extracting-road-data.html"><i class="fa fa-check"></i><b>2</b> Extracting road data</a></li>
+<li class="chapter" data-level="3" data-path="be-ready-to-download-nasa.html"><a href="be-ready-to-download-nasa.html"><i class="fa fa-check"></i><b>3</b> Be ready to download NASA</a></li>
+</ul>
+
+      </nav>
+    </div>
+
+    <div class="book-body">
+      <div class="body-inner">
+        <div class="book-header" role="navigation">
+          <h1>
+            <i class="fa fa-circle-o-notch fa-spin"></i><a href="./">Road to Prediction</a>
+          </h1>
+        </div>
+
+        <div class="page-wrapper" tabindex="-1" role="main">
+          <div class="page-inner">
+
+            <section class="normal" id="section-">
+<!--  <center><img src="logo/normal_3.png" width="300px"></center> -->
+<br><br><br><br>
+<div id="be-ready-to-download-nasa" class="section level1">
+<h1><span class="header-section-number">Chapter 3</span> Be ready to download NASA</h1>
+<p>Unfortunately, the NASA Landsat images need to be selected via an online mask on USGS’s <a href="https://earthexplorer.usgs.gov/">webpage</a>. My approach was to extract the identifier of the images that I want to download and then feed them into the USGS website. This way a bulk download is possible. The necessary file to identify the images can be downloaded from <a href="https://landsat.usgs.gov/pathrow-shapefiles">USGS</a>.</p>
+<p>I only care about pictures taken between June and August. The reason is that the sizes of the images are large, including scences from the whole year means that the reflected colors change and thus, more images are necessary to train the algorith. Additionally, clouds block the view and I assume that there are less clouds in the summer than in the winter, which increases the number of useable scenes.</p>
+<div class="sourceCode"><pre class="sourceCode r"><code class="sourceCode r"><span class="kw">library</span>(tidyverse)
+<span class="kw">library</span>(rgdal)
+<span class="kw">library</span>(rgeos)
+<span class="kw">library</span>(raster)
+<span class="co"># library(osmar)</span>
+<span class="co"># library(tmaptools)</span>
+<span class="co"># library(osmdata)</span>
+<span class="co"># library(sebstoolkit2)</span>
+<span class="kw">options</span>(<span class="dt">stringsAsFactors =</span> <span class="ot">FALSE</span>)
+wrs2&lt;-<span class="kw">readOGR</span>(<span class="st">&quot;data/spatial/wrs2/wrs2_descending.shp&quot;</span>)
+
+<span class="kw">proj4string</span>(wrs2)
+
+mv&lt;-<span class="kw">readOGR</span>(<span class="st">&quot;data/spatial/gadm/gadm36_DEU_1.shp&quot;</span>)
+mv &lt;-<span class="st"> </span>mv[mv<span class="op">$</span>NAME_<span class="dv">1</span><span class="op">==</span><span class="st">&quot;Mecklenburg-Vorpommern&quot;</span>,]
+mv_bbox&lt;-<span class="kw">bbox</span>(mv)
+
+mv_rec&lt;-<span class="kw">rbind</span>(<span class="kw">cbind</span>(mv_bbox[<span class="dv">1</span>,<span class="dv">1</span>],mv_bbox[<span class="dv">2</span>,]),
+               <span class="kw">cbind</span>(mv_bbox[<span class="dv">1</span>,<span class="dv">2</span>],mv_bbox[<span class="dv">2</span>,] <span class="op">%&gt;%</span><span class="st"> </span>rev)) <span class="op">%&gt;%</span><span class="st"> </span>
+<span class="st">  </span><span class="kw">Polygon</span>() <span class="op">%&gt;%</span><span class="st"> </span>
+<span class="st">  </span>list <span class="op">%&gt;%</span><span class="st"> </span>
+<span class="st">  </span><span class="kw">Polygons</span>(<span class="dt">ID =</span> <span class="dv">1</span>) <span class="op">%&gt;%</span><span class="st"> </span>
+<span class="st">  </span>list <span class="op">%&gt;%</span><span class="st"> </span>
+<span class="st">  </span><span class="kw">SpatialPolygons</span>(<span class="dt">proj4string =</span> <span class="kw">CRS</span>(<span class="kw">proj4string</span>(mv)))
+
+wrs2 <span class="op">%&gt;%</span><span class="st"> </span>head
+
+
+<span class="kw">plot</span>(wrs2[<span class="kw">which</span>(<span class="op">!</span><span class="kw">is.na</span>(<span class="kw">over</span>(wrs2,mv_rec,<span class="dt">returnList =</span><span class="ot">FALSE</span>))),])
+<span class="kw">plot</span>(wrs2[<span class="kw">paste0</span>(wrs2<span class="op">$</span>PATH,wrs2<span class="op">$</span>ROW)<span class="op">%in%</span><span class="kw">c</span>(<span class="st">&quot;19422&quot;</span>,<span class="st">&quot;19522&quot;</span>),])
+<span class="kw">plot</span>(mv_rec,<span class="dt">add=</span><span class="ot">TRUE</span>,<span class="dt">col=</span><span class="st">&quot;red&quot;</span>)
+scenes&lt;-wrs2<span class="op">$</span>WRSPR[<span class="kw">which</span>(<span class="op">!</span><span class="kw">is.na</span>(<span class="kw">over</span>(wrs2,mv_rec,<span class="dt">returnList =</span><span class="ot">FALSE</span>)))]
+<span class="co"># now put them in online </span>
+<span class="co"># earthexplorer</span>
+<span class="co"># not here: this is for later https://espa.cr.usgs.gov/</span>
+<span class="co"># and then retrieve all scenes</span>
+scenes&lt;-<span class="kw">read.csv</span>(<span class="st">&quot;a20/LSR_LANDSAT_TM_C1_265706.csv&quot;</span>)
+<span class="kw">mean</span>(scenes<span class="op">$</span>Land.Cloud.Cover<span class="op">&lt;</span><span class="dv">50</span>)
+
+scenes<span class="op">$</span>Scene.Cloud.Cover <span class="op">%&gt;%</span><span class="st"> </span>density <span class="op">%&gt;%</span><span class="st"> </span>plot
+
+<span class="kw">cor.test</span>(scenes<span class="op">$</span>Land.Cloud.Cover,scenes<span class="op">$</span>Scene.Cloud.Cover)
+
+<span class="co"># scenes&lt;-read.csv(&quot;./a20/LSR_LANDSAT_TM_C1_244353.csv&quot;)</span>
+<span class="co"># 1 scene from 1988</span>
+<span class="co"># 1 scene from 2011</span>
+
+whats_there&lt;-<span class="kw">list.files</span>(<span class="st">&quot;./a20/scenes&quot;</span>) <span class="op">%&gt;%</span><span class="st"> </span>
+<span class="st">  </span><span class="kw">strsplit</span>(<span class="st">&quot;-&quot;</span>) <span class="op">%&gt;%</span><span class="st"> </span>
+<span class="st">  </span><span class="kw">get.element.from.list</span>(<span class="dv">1</span>)
+whats_there_years&lt;-whats_there <span class="op">%&gt;%</span><span class="st"> </span>
+<span class="st">  </span><span class="kw">substr</span>(<span class="dv">11</span>,<span class="dv">14</span>) <span class="op">%&gt;%</span><span class="st"> </span>
+<span class="st">  </span>as.numeric
+
+sc&lt;-scenes <span class="op">%&gt;%</span><span class="st"> </span>
+<span class="st">  </span><span class="kw">filter</span>(Land.Cloud.Cover<span class="op">&lt;</span><span class="dv">50</span><span class="op">&amp;</span>Spacecraft.Identifier<span class="op">==</span><span class="st">&quot;LANDSAT_5&quot;</span>) <span class="op">%&gt;%</span>
+<span class="st">  </span><span class="kw">mutate</span>(<span class="dt">Date=</span>Acquisition.Date <span class="op">%&gt;%</span>
+<span class="st">           </span><span class="kw">strsplit</span>(<span class="st">&quot;/&quot;</span>)<span class="op">%&gt;%</span><span class="st"> </span>
+<span class="st">           </span><span class="kw">get.element.from.list</span>(<span class="dv">1</span>) <span class="op">%&gt;%</span><span class="st"> </span>
+<span class="st">           </span>as.numeric) <span class="op">%&gt;%</span><span class="st"> </span>
+<span class="st">  </span><span class="kw">mutate</span>(<span class="dt">LPI=</span>Landsat.Product.Identifier <span class="op">%&gt;%</span><span class="st"> </span>
+<span class="st">           </span><span class="kw">gsub</span>(<span class="st">&quot;_&quot;</span>,<span class="st">&quot;&quot;</span>,.)) <span class="op">%&gt;%</span><span class="st"> </span>
+<span class="st">  </span><span class="kw">filter</span>(<span class="op">!</span>LPI<span class="op">%in%</span>whats_there) <span class="op">%&gt;%</span><span class="st"> </span>
+<span class="st">  </span><span class="co"># filter(!Date%in%whats_there_years&amp;Date&gt;1990&amp;</span>
+<span class="st">  </span><span class="co">#          WRS.Path==194) %&gt;% </span>
+<span class="st">  </span>dplyr<span class="op">::</span><span class="kw">select</span>(Landsat.Product.Identifier,Date)
+
+sc<span class="op">$</span>Landsat.Product.Identifier <span class="op">%&gt;%</span><span class="st">  </span><span class="kw">substr</span>(<span class="dv">22</span>,<span class="dv">23</span>) <span class="op">%&gt;%</span><span class="st"> </span>as.numeric <span class="op">%&gt;%</span><span class="st"> </span>table
+sc <span class="op">%&gt;%</span><span class="st"> </span>nrow
+
+sc&lt;-sc<span class="op">$</span>Landsat.Product.Identifier[<span class="kw">sapply</span>(sc<span class="op">$</span>Date <span class="op">%&gt;%</span><span class="st"> </span>
+<span class="st">                                           </span>unique,<span class="cf">function</span>(y) <span class="kw">which</span>(sc<span class="op">$</span>Date<span class="op">==</span>y)[<span class="dv">1</span>])]
+
+
+f1&lt;-<span class="kw">file</span>(<span class="st">&quot;./a20/2_scenes.txt&quot;</span>)
+<span class="kw">writeLines</span>(<span class="dt">text =</span> sc,<span class="dt">con =</span> f1)
+<span class="kw">close</span>(f1)
+a20_rec_reproj&lt;-<span class="kw">spTransform</span>(mv_rec,<span class="kw">CRS</span>(<span class="st">&quot;+proj=utm +zone=33 +datum=WGS84 +units=m +no_defs +ellps=WGS84 +towgs84=0,0,0&quot;</span>))
+a20_part_reproj&lt;-<span class="kw">spTransform</span>(a20_part,<span class="kw">CRS</span>(<span class="kw">proj4string</span>(both_years[[<span class="dv">1</span>]])))</code></pre></div>
+
+</div>
+            </section>
+
+          </div>
+        </div>
+      </div>
+<a href="extracting-road-data.html" class="navigation navigation-prev navigation-unique" aria-label="Previous page"><i class="fa fa-angle-left"></i></a>
+
+    </div>
+  </div>
+<script src="libs/gitbook-2.6.7/js/app.min.js"></script>
+<script src="libs/gitbook-2.6.7/js/lunr.js"></script>
+<script src="libs/gitbook-2.6.7/js/plugin-search.js"></script>
+<script src="libs/gitbook-2.6.7/js/plugin-sharing.js"></script>
+<script src="libs/gitbook-2.6.7/js/plugin-fontsettings.js"></script>
+<script src="libs/gitbook-2.6.7/js/plugin-bookdown.js"></script>
+<script src="libs/gitbook-2.6.7/js/jquery.highlight.js"></script>
+<script>
+gitbook.require(["gitbook"], function(gitbook) {
+gitbook.start({
+"sharing": {
+"github": false,
+"facebook": true,
+"twitter": true,
+"google": false,
+"linkedin": false,
+"weibo": false,
+"instapper": false,
+"vk": false,
+"all": ["facebook", "google", "twitter", "linkedin", "weibo", "instapaper"]
+},
+"fontsettings": {
+"theme": "white",
+"family": "sans",
+"size": 2
+},
+"edit": {
+"link": null,
+"text": null
+},
+"download": null,
+"toc": {
+"collapse": "subsection",
+"sharing": {
+"github": true
+}
+}
+});
+});
+</script>
+
+</body>
+
+</html>

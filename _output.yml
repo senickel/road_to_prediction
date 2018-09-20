@@ -1,0 +1,7 @@
+bookdown::gitbook:
+  highlight: tango
+  config:
+    toc:
+      sharing:
+        github: yes
+

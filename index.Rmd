@@ -1,0 +1,32 @@
+--- 
+title: "Road to Prediction"
+author: "Sebastian Nickel"
+date: "`r Sys.setlocale('LC_ALL','English'); format(Sys.time(), '%B %d, %Y')`"
+site: bookdown::bookdown_site
+output: 
+  bookdown::gitbook:
+    split_by: chapter
+    includes:
+      in_header: header.html
+      before_body: before_body.html
+documentclass: book
+biblio-style: apalike
+link-citations: yes
+github-repo: senickel/road_to_prediction
+---
+
+
+
+
+# Prerequiste {-}
+```{r, echo=FALSE}
+htmltools::img(src = knitr::image_uri("logo/normal_4.png"),width="400px", 
+               alt = 'logo', 
+               style = 'position:absolute; top:10px; display: block; margin-left: auto; margin-right: auto')
+
+#position:absolute; top:20px; right:200px; padding:10px;
+#display: block; margin-left: auto; margin-right: auto
+# right:10%; padding:10px
+```
+
+This project's goal is to predict when highways were built with the help of NASA Landsat satellite images and machine learning techniques. Everything here is work in progress.

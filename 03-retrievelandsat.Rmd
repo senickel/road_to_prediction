@@ -1,0 +1,90 @@
+# Be ready to download NASA
+
+Unfortunately, the NASA Landsat images need to be selected via an online mask on USGS's [webpage](https://earthexplorer.usgs.gov/). My approach was to extract the identifier of the images that I want to download and then feed them into the USGS website. This way a bulk download is possible. The necessary file to identify the images can be downloaded from [USGS](https://landsat.usgs.gov/pathrow-shapefiles).  
+  
+I only care about pictures taken between June and August. The reason is that the sizes of the images are large, including scences from the whole year means that the reflected colors change and thus, more images are necessary to train the algorith. Additionally, clouds block the view and I assume that there are less clouds in the summer than in the winter, which increases the number of useable scenes.
+
+
+```{r extractlandsat,eval=FALSE}
+library(tidyverse)
+library(rgdal)
+library(rgeos)
+library(raster)
+# library(osmar)
+# library(tmaptools)
+# library(osmdata)
+# library(sebstoolkit2)
+options(stringsAsFactors = FALSE)
+wrs2<-readOGR("data/spatial/wrs2/wrs2_descending.shp")
+
+proj4string(wrs2)
+
+mv<-readOGR("data/spatial/gadm/gadm36_DEU_1.shp")
+mv <- mv[mv$NAME_1=="Mecklenburg-Vorpommern",]
+mv_bbox<-bbox(mv)
+
+mv_rec<-rbind(cbind(mv_bbox[1,1],mv_bbox[2,]),
+               cbind(mv_bbox[1,2],mv_bbox[2,] %>% rev)) %>% 
+  Polygon() %>% 
+  list %>% 
+  Polygons(ID = 1) %>% 
+  list %>% 
+  SpatialPolygons(proj4string = CRS(proj4string(mv)))
+
+wrs2 %>% head
+
+
+plot(wrs2[which(!is.na(over(wrs2,mv_rec,returnList =FALSE))),])
+plot(wrs2[paste0(wrs2$PATH,wrs2$ROW)%in%c("19422","19522"),])
+plot(mv_rec,add=TRUE,col="red")
+scenes<-wrs2$WRSPR[which(!is.na(over(wrs2,mv_rec,returnList =FALSE)))]
+# now put them in online 
+# earthexplorer
+# not here: this is for later https://espa.cr.usgs.gov/
+# and then retrieve all scenes
+scenes<-read.csv("a20/LSR_LANDSAT_TM_C1_265706.csv")
+mean(scenes$Land.Cloud.Cover<50)
+
+scenes$Scene.Cloud.Cover %>% density %>% plot
+
+cor.test(scenes$Land.Cloud.Cover,scenes$Scene.Cloud.Cover)
+
+# scenes<-read.csv("./a20/LSR_LANDSAT_TM_C1_244353.csv")
+# 1 scene from 1988
+# 1 scene from 2011
+
+whats_there<-list.files("./a20/scenes") %>% 
+  strsplit("-") %>% 
+  get.element.from.list(1)
+whats_there_years<-whats_there %>% 
+  substr(11,14) %>% 
+  as.numeric
+
+sc<-scenes %>% 
+  filter(Land.Cloud.Cover<50&Spacecraft.Identifier=="LANDSAT_5") %>%
+  mutate(Date=Acquisition.Date %>%
+           strsplit("/")%>% 
+           get.element.from.list(1) %>% 
+           as.numeric) %>% 
+  mutate(LPI=Landsat.Product.Identifier %>% 
+           gsub("_","",.)) %>% 
+  filter(!LPI%in%whats_there) %>% 
+  # filter(!Date%in%whats_there_years&Date>1990&
+  #          WRS.Path==194) %>% 
+  dplyr::select(Landsat.Product.Identifier,Date)
+
+sc$Landsat.Product.Identifier %>%  substr(22,23) %>% as.numeric %>% table
+sc %>% nrow
+
+sc<-sc$Landsat.Product.Identifier[sapply(sc$Date %>% 
+                                           unique,function(y) which(sc$Date==y)[1])]
+
+
+f1<-file("./a20/2_scenes.txt")
+writeLines(text = sc,con = f1)
+close(f1)
+a20_rec_reproj<-spTransform(mv_rec,CRS("+proj=utm +zone=33 +datum=WGS84 +units=m +no_defs +ellps=WGS84 +towgs84=0,0,0"))
+a20_part_reproj<-spTransform(a20_part,CRS(proj4string(both_years[[1]])))
+
+```
+

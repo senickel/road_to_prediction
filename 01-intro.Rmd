@@ -1,0 +1,7 @@
+# Introduction
+
+I decided to test the idea of road prediction on the North-Eastern German state of Mecklenburg-Vorpommern (MV). MV is one of the "new" German states and former territory of the German Democratic Republic (GDR). In the 90s and 2000s after the former GDR territories joined the Federal Republic of Germany a lot of development projects were carried out in the new states to promote "flourishing landscapes". Most notably in MV the motorway A20 (so-called Baltic Sea motorway) was built.  
+
+I only rely on Landsat images of Landsat 4 and higher because the resolution on Landsat 1-3 is not high enough. Landsat 4 started in 1982 and the resolution for 5 of the 7 band is 30 square meters at the equator.
+
+

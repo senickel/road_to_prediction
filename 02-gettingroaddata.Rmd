@@ -1,0 +1,100 @@
+# Extracting road data
+
+The road data for MV is extracted via the overpass API, the necessary overpass package is provided by [hrbrmstr](https://github.com/hrbrmstr/overpass).  
+I extract two types of roads, first the highways and then all primary roads. Especially, the second query is time consuming.  
+
+```{r libs}
+library(overpass)
+library(rgdal)
+library(tidyverse)
+library(raster)
+library(sf)
+library(geosampling)
+options(stringsAsFactors = FALSE)
+
+```
+
+
+
+```{r bboxmv,echo=FALSE,fig.align="center",fig.cap="Mecklenburg-Vorpommern and bounding box in red.",cache=TRUE}
+mv <- st_read("data/spatial/gadm/gadm36_DEU_1.shp") %>% 
+  st_as_sf() %>% 
+  filter(NAME_1=="Mecklenburg-Vorpommern")
+mv <- st_transform(mv,crs = 4326)
+
+bb<-st_bbox(mv) %>%   
+  matrix(ncol=2,byrow=TRUE)
+
+pol_extent <- rbind(c(bb[1,1],bb[2,2]),
+      bb[1,],
+      c(bb[2,1],bb[1,2]),
+      bb[2,],
+      c(bb[1,1],bb[2,2])) %>% 
+  list() %>% 
+  st_polygon() %>% 
+  st_sfc(crs = 4326) %>% 
+  st_sf()
+
+gg1 <- ggplot(mv) +
+  geom_sf() +
+  geom_sf(data = pol_extent,
+          color = "red",fill = NA)
+gg1
+```
+
+
+
+```{r overpassextraction,eval=FALSE}
+
+motorway_query <- '[out:xml][timeout:100];
+(
+  node["highway"="motorway"](53,10.5,54.7,14.5);
+  way["highway"="motorway"](53,10.5,54.7,14.5);
+  relation["highway"="motorway"](53,10.5,54.7,14.5);
+);
+out body;
+>;
+out skel qt;'
+  
+motorway_spatial <- overpass_query(motorway_query)
+
+primary_query <- '[out:xml][timeout:100];
+(
+  node["highway"="primary"](53,10.5,54.7,14.5);
+  way["highway"="primary"](53,10.5,54.7,14.5);
+  relation["highway"="primary"](53,10.5,54.7,14.5);
+);
+out body;
+>;
+out skel qt;'
+
+
+primary_spatial <- overpass_query(primary_query)
+  
+
+```
+
+
+```{r highways,echo=FALSE,cache=TRUE,fig.align="center",fig.cap="MV with motorways (red) and primary roads (blue)."}
+motorways <- readOGR("ouput/roads_in_mv/motorway.shp") %>% 
+  gLineMerge()
+proj4string(motorways) <- CRS("+init=epsg:4326")
+
+motorways <- motorways %>% 
+    crop(as(mv,"Spatial"))
+
+
+primary <- readOGR("ouput/roads_in_mv/primary.shp") %>% 
+  gLineMerge()
+
+proj4string(primary) <- CRS("+init=epsg:4326")
+
+primary <- primary %>% 
+    crop(as(mv,"Spatial"))
+
+gg1 +
+  geom_sf(data = motorways %>% st_as_sf(),color="red") +
+  geom_sf(data = primary %>% st_as_sf(),color = "blue")
+
+
+```
