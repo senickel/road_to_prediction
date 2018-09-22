@@ -10,6 +10,9 @@ library(tidyverse)
 library(raster)
 library(sf)
 library(geosampling)
+library(rgeos)
+library(knitr)
+library(magrittr)
 options(stringsAsFactors = FALSE)
 
 ```

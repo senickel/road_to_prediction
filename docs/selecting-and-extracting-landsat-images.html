@@ -126,7 +126,9 @@ code > span.in { color: #8f5902; font-weight: bold; font-style: italic; } /* Inf
 <li class="chapter" data-level="" data-path="index.html"><a href="index.html"><i class="fa fa-check"></i>Prerequiste</a></li>
 <li class="chapter" data-level="1" data-path="introduction.html"><a href="introduction.html"><i class="fa fa-check"></i><b>1</b> Introduction</a></li>
 <li class="chapter" data-level="2" data-path="extracting-road-data.html"><a href="extracting-road-data.html"><i class="fa fa-check"></i><b>2</b> Extracting road data</a></li>
-<li class="chapter" data-level="3" data-path="be-ready-to-download-nasa.html"><a href="be-ready-to-download-nasa.html"><i class="fa fa-check"></i><b>3</b> Be ready to download NASA</a></li>
+<li class="chapter" data-level="3" data-path="selecting-and-extracting-landsat-images.html"><a href="selecting-and-extracting-landsat-images.html"><i class="fa fa-check"></i><b>3</b> Selecting and extracting Landsat images</a><ul>
+<li class="chapter" data-level="3.1" data-path="selecting-and-extracting-landsat-images.html"><a href="selecting-and-extracting-landsat-images.html#located-the-scenes"><i class="fa fa-check"></i><b>3.1</b> Located the scenes</a></li>
+</ul></li>
 </ul>
 
       </nav>
@@ -146,10 +148,12 @@ code > span.in { color: #8f5902; font-weight: bold; font-style: italic; } /* Inf
             <section class="normal" id="section-">
 <!--  <center><img src="logo/normal_3.png" width="300px"></center> -->
 <br><br><br><br>
-<div id="be-ready-to-download-nasa" class="section level1">
-<h1><span class="header-section-number">Chapter 3</span> Be ready to download NASA</h1>
+<div id="selecting-and-extracting-landsat-images" class="section level1">
+<h1><span class="header-section-number">Chapter 3</span> Selecting and extracting Landsat images</h1>
 <p>Unfortunately, the NASA Landsat images need to be selected via an online mask on USGS’s <a href="https://earthexplorer.usgs.gov/">webpage</a>. My approach was to extract the identifier of the images that I want to download and then feed them into the USGS website. This way a bulk download is possible. The necessary file to identify the images can be downloaded from <a href="https://landsat.usgs.gov/pathrow-shapefiles">USGS</a>.</p>
-<p>I only care about pictures taken between June and August. The reason is that the sizes of the images are large, including scences from the whole year means that the reflected colors change and thus, more images are necessary to train the algorith. Additionally, clouds block the view and I assume that there are less clouds in the summer than in the winter, which increases the number of useable scenes.</p>
+<p>I only care about pictures taken between June and August by Landsat 5 which operated between 1982 and 2011. The reason is that the sizes of the images are large, including scences from the whole year means that the reflected colors change and thus, more images are necessary to train the algorithm. Additionally, clouds block the view and I assume that there are less clouds in the summer than in the winter, which increases the number of useable scenes.</p>
+<div id="located-the-scenes" class="section level2">
+<h2><span class="header-section-number">3.1</span> Located the scenes</h2>
 <p>First, I identify the <code>PATH</code> and the <code>ROW</code> which are necessery to identify the scenes.</p>
 <div class="sourceCode"><pre class="sourceCode r"><code class="sourceCode r">wrs2&lt;-<span class="kw">readOGR</span>(<span class="st">&quot;data/spatial/wrs2/wrs2_descending.shp&quot;</span>,
               <span class="dt">verbose=</span><span class="ot">FALSE</span>)
@@ -170,6 +174,7 @@ mv_wrs2 <span class="op">%&gt;%</span><span class="st"> </span>
 Figure 3.1: MV with scenes.
 </p>
 </div>
+<p>With the <code>PATH</code> and <code>ROW</code> numbers (Table <a href="selecting-and-extracting-landsat-images.html#tab:kab1">3.1</a>), I turned to the eartexplorer website to search for the images. Instead of downloading the images, which are around 2 GB each, I extracted the meta file (Figure <a href="selecting-and-extracting-landsat-images.html#fig:earthex1">3.2</a>, <a href="selecting-and-extracting-landsat-images.html#fig:earthex2">3.3</a>, and <a href="selecting-and-extracting-landsat-images.html#fig:earthex3">3.4</a>).</p>
 <div class="sourceCode"><pre class="sourceCode r"><code class="sourceCode r">scenes &lt;-<span class="st"> </span>wrs2<span class="op">@</span>data[<span class="kw">which</span>(<span class="op">!</span><span class="kw">is.na</span>(<span class="kw">over</span>(wrs2,pol_extent2,<span class="dt">returnList =</span><span class="ot">FALSE</span>))),<span class="kw">c</span>(<span class="st">&quot;PATH&quot;</span>,<span class="st">&quot;ROW&quot;</span>)]
 
 <span class="kw">data.frame</span>(<span class="dt">PATH =</span> <span class="kw">c</span>(<span class="kw">min</span>(scenes<span class="op">$</span>PATH),<span class="kw">max</span>(scenes<span class="op">$</span>PATH)),
@@ -355,6 +360,7 @@ Figure 3.6: Scenes
 </p>
 </div>
 
+</div>
 </div>
             </section>
 

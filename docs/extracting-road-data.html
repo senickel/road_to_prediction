@@ -25,7 +25,7 @@
 <meta name="author" content="Sebastian Nickel">
 
 
-<meta name="date" content="2018-09-20">
+<meta name="date" content="2018-09-22">
 
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <meta name="apple-mobile-web-app-capable" content="yes">
@@ -33,7 +33,7 @@
   
   
 <link rel="prev" href="introduction.html">
-<link rel="next" href="be-ready-to-download-nasa.html">
+<link rel="next" href="selecting-landsat-images.html">
 <script src="libs/jquery-2.2.3/jquery.min.js"></script>
 <link href="libs/gitbook-2.6.7/css/style.css" rel="stylesheet" />
 <link href="libs/gitbook-2.6.7/css/plugin-bookdown.css" rel="stylesheet" />
@@ -126,7 +126,11 @@ code > span.in { color: #8f5902; font-weight: bold; font-style: italic; } /* Inf
 <li class="chapter" data-level="" data-path="index.html"><a href="index.html"><i class="fa fa-check"></i>Prerequiste</a></li>
 <li class="chapter" data-level="1" data-path="introduction.html"><a href="introduction.html"><i class="fa fa-check"></i><b>1</b> Introduction</a></li>
 <li class="chapter" data-level="2" data-path="extracting-road-data.html"><a href="extracting-road-data.html"><i class="fa fa-check"></i><b>2</b> Extracting road data</a></li>
-<li class="chapter" data-level="3" data-path="be-ready-to-download-nasa.html"><a href="be-ready-to-download-nasa.html"><i class="fa fa-check"></i><b>3</b> Be ready to download NASA</a></li>
+<li class="chapter" data-level="3" data-path="selecting-landsat-images.html"><a href="selecting-landsat-images.html"><i class="fa fa-check"></i><b>3</b> Selecting Landsat images</a><ul>
+<li class="chapter" data-level="3.1" data-path="selecting-landsat-images.html"><a href="selecting-landsat-images.html#locating-the-scenes"><i class="fa fa-check"></i><b>3.1</b> Locating the scenes</a></li>
+<li class="chapter" data-level="3.2" data-path="selecting-landsat-images.html"><a href="selecting-landsat-images.html#reducing-the-scenes"><i class="fa fa-check"></i><b>3.2</b> Reducing the scenes</a></li>
+<li class="chapter" data-level="3.3" data-path="selecting-landsat-images.html"><a href="selecting-landsat-images.html#bulk-download-scenes"><i class="fa fa-check"></i><b>3.3</b> Bulk download scenes</a></li>
+</ul></li>
 </ul>
 
       </nav>
@@ -156,6 +160,9 @@ I extract two types of roads, first the highways and then all primary roads. Esp
 <span class="kw">library</span>(raster)
 <span class="kw">library</span>(sf)
 <span class="kw">library</span>(geosampling)
+<span class="kw">library</span>(rgeos)
+<span class="kw">library</span>(knitr)
+<span class="kw">library</span>(magrittr)
 <span class="kw">options</span>(<span class="dt">stringsAsFactors =</span> <span class="ot">FALSE</span>)</code></pre></div>
 <pre><code>## Reading layer `gadm36_DEU_1&#39; from data source `C:\Users\xnicse\Dropbox\Projects\road_to_prediction\data\spatial\gadm\gadm36_DEU_1.shp&#39; using driver `ESRI Shapefile&#39;
 ## Simple feature collection with 16 features and 10 fields
@@ -216,7 +223,7 @@ Figure 2.2: MV with motorways (red) and primary roads (blue).
         </div>
       </div>
 <a href="introduction.html" class="navigation navigation-prev " aria-label="Previous page"><i class="fa fa-angle-left"></i></a>
-<a href="be-ready-to-download-nasa.html" class="navigation navigation-next " aria-label="Next page"><i class="fa fa-angle-right"></i></a>
+<a href="selecting-landsat-images.html" class="navigation navigation-next " aria-label="Next page"><i class="fa fa-angle-right"></i></a>
     </div>
   </div>
 <script src="libs/gitbook-2.6.7/js/app.min.js"></script>
