@@ -1,0 +1,107 @@
+# Basic Analysis
+
+First, I will look at one satellite picture to show the general procedure.
+
+According to the Landsat [website](https://landsat.usgs.gov/landsat-surface-reflectance-quality-assessment) the pixel_qa band has a more accurate prediction for identifying clouds, cloud shadows, water, and snow.
+
+
+```{r pixelqatransform,cache=TRUE}
+Rcpp::sourceCpp("cppsource/table_cpp.cpp")
+
+cloud_identification <- raster("E:/landsatscene/LT051940232011072701T1-SC20180926185810/LT05_L1TP_194023_20110727_20180312_01_T1_pixel_qa.tif") 
+cloud_identification_cropped <- crop(cloud_identification,st_transform(mv,crs=proj4string(cloud_identification)))
+
+mv_raster <- fasterize::fasterize(st_transform(mv,crs=proj4string(cloud_identification)),cloud_identification_cropped)
+cloud_identification_masked <- mask(cloud_identification_cropped,mv_raster)
+
+cloud_identification_values <- getValues(cloud_identification_masked)
+none_clear_values <- c(96, 112, 160, 176, 224, 68, 72, 80, 96, 112, 132, 136, 144, 160, 176,224,72, 136,68, 132,80, 112, 144, 176)
+
+cloud_identification_values_2 <- 
+  ifelse(cloud_identification_values %in% none_clear_values,0,
+         ifelse(is.na(cloud_identification_values),NA,1))
+
+cloud_identification_2 <- setValues(cloud_identification_masked,cloud_identification_values_2) 
+
+cbind(table_cpp(cloud_identification_values_2[!is.na(cloud_identification_values_2)]) %>% 
+  do.call(rbind,.),c(sum(is.na(cloud_identification_values_2)),NA)) %>% 
+  t %>% 
+  as.data.frame %>% 
+  mutate(lengths = 100*lengths/sum(lengths)) %>% 
+  rename(Percentage = lengths,
+         Values = values) %>% 
+  kable(caption="Coverage for different values. `NA` are the rims of the picture, 0 is cloud covered, and 1 is free sight.")
+
+
+motorways_sf <- spTransform(motorways,CRS(proj4string(cloud_identification_2))) %>% 
+  gBuffer(width = 1) %>% 
+  st_as_sf()
+
+motorways_raster <- fasterize::fasterize(motorways_sf,
+                     cloud_identification_2)
+
+covered_by_road <- mask(cloud_identification_2,motorways_raster) %>% 
+  getValues() %>% 
+  is.na() %>% 
+  `!` %>% 
+  which()
+
+cloud_identification_values_3 <- ifelse(is.na(cloud_identification_values_2),0,cloud_identification_values_2)
+```
+
+```{r rasterbrick1,cache=TRUE}
+listed_raster <- list.files("E:/landsatscene/LT051940232011072701T1-SC20180926185810/",pattern="band[0-9].tif$",full.names = TRUE)
+
+values_df <- lapply(listed_raster,function(ra1_path) {
+  
+  ra1 <- raster(ra1_path)
+  
+  ra1_cropped <- crop(ra1,st_transform(mv,crs=proj4string(ra1)))
+  
+  ra1_cropped_masked <- mask(ra1_cropped,mv_raster)
+  
+  ra1_cropped_masked_cloudless <- setValues(ra1_cropped_masked,ifelse(getValues(ra1_cropped_masked)*cloud_identification_values_3==0,NA,getValues(ra1_cropped_masked)))
+  
+  getValues(ra1_cropped_masked_cloudless)
+  
+}) %>% 
+  do.call(cbind,.) %>% 
+  as.data.frame()
+
+values_df$motorway <- 0
+values_df$motorway[covered_by_road] <- 1
+
+none_na <- values_df$V1 %>% 
+  is.na() %>% 
+  `!` %>% 
+  which()
+
+values_df <- values_df %>% 
+  slice(none_na)
+
+
+
+```
+
+```{r somesimplemodel,echo=FALSE,eval=FALSE}
+
+set.seed(13)
+subset <- c(sample(which(values_df$motorway==0),10000),which(values_df$motorway==1))
+values_df_model <- slice(values_df,subset)
+model_linear <- lm(motorway~V1+V2+V3+V4+V5+V6,data=values_df_model) 
+
+values_df_model$predicted <- predict(model_linear,values_df_model)
+
+values_df_model %>% 
+  mutate(predicted_binary = as.numeric(predicted>0.5),
+         equal = motorway==predicted_binary) %>%
+  filter(motorway==1) %>% 
+  dplyr::select(equal) %>% table
+
+model_linear %>% summary
+
+sum(p1>0.1,na.rm=TRUE)
+
+library(randomForest)
+
+```

@@ -25,7 +25,7 @@
 <meta name="author" content="Sebastian Nickel">
 
 
-<meta name="date" content="2018-09-22">
+<meta name="date" content="2018-10-03">
 
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <meta name="apple-mobile-web-app-capable" content="yes">
@@ -33,7 +33,7 @@
   
   
 <link rel="prev" href="extracting-road-data.html">
-
+<link rel="next" href="basic-analysis.html">
 <script src="libs/jquery-2.2.3/jquery.min.js"></script>
 <link href="libs/gitbook-2.6.7/css/style.css" rel="stylesheet" />
 <link href="libs/gitbook-2.6.7/css/plugin-bookdown.css" rel="stylesheet" />
@@ -131,6 +131,7 @@ code > span.in { color: #8f5902; font-weight: bold; font-style: italic; } /* Inf
 <li class="chapter" data-level="3.2" data-path="selecting-landsat-images.html"><a href="selecting-landsat-images.html#reducing-the-scenes"><i class="fa fa-check"></i><b>3.2</b> Reducing the scenes</a></li>
 <li class="chapter" data-level="3.3" data-path="selecting-landsat-images.html"><a href="selecting-landsat-images.html#bulk-download-scenes"><i class="fa fa-check"></i><b>3.3</b> Bulk download scenes</a></li>
 </ul></li>
+<li class="chapter" data-level="4" data-path="basic-analysis.html"><a href="basic-analysis.html"><i class="fa fa-check"></i><b>4</b> Basic Analysis</a></li>
 </ul>
 
       </nav>
@@ -347,11 +348,12 @@ Figure 3.5: Scenes <a href="mailto:194@22">194@22</a> and <a href="mailto:194@23
 
 number_of_scenes &lt;-<span class="st"> </span>images_df <span class="op">%&gt;%</span><span class="st"> </span>
 <span class="st">  </span><span class="kw">mutate</span>(<span class="dt">PATHROW=</span><span class="kw">paste0</span>(PATH,<span class="st">&quot;@&quot;</span>,ROW)) <span class="op">%&gt;%</span>
-<span class="st">  </span><span class="kw">filter</span>(PATHROW <span class="op">%in%</span><span class="st"> </span><span class="kw">c</span>(<span class="st">&quot;194@22&quot;</span>,<span class="st">&quot;194@23&quot;</span>)<span class="op">&amp;</span>Land.Cloud.Cover<span class="op">&lt;</span>cloudthreshold) <span class="op">%&gt;%</span><span class="st"> </span>nrow</code></pre></div>
-<p>I further reduce the number of scenes to only account for images with a cover less than 50%. A total of 87 are still being considered. Figure <a href="selecting-landsat-images.html#fig:scenesperyear">3.6</a> shows the distribution of cloud covers for both scenes from 1984 to 2011.</p>
+<span class="st">  </span><span class="kw">filter</span>(PATHROW <span class="op">%in%</span><span class="st"> </span><span class="kw">c</span>(<span class="st">&quot;194@22&quot;</span>,<span class="st">&quot;194@23&quot;</span>)<span class="op">&amp;</span>Land.Cloud.Cover<span class="op">&lt;</span>cloudthreshold<span class="op">&amp;</span><span class="kw">grepl</span>(<span class="st">&quot;_T1&quot;</span>,Landsat.Product.Identifier)) <span class="op">%&gt;%</span><span class="st"> </span>
+<span class="st">  </span>nrow</code></pre></div>
+<p>I further reduce the number of scenes to only account for images with a cover less than 50%. A total of 79 are still being considered. Figure <a href="selecting-landsat-images.html#fig:scenesperyear">3.6</a> shows the distribution of cloud covers for both scenes from 1984 to 2011.</p>
 <div class="sourceCode"><pre class="sourceCode r"><code class="sourceCode r">images_df <span class="op">%&gt;%</span><span class="st"> </span>
 <span class="st">  </span><span class="kw">mutate</span>(<span class="dt">PATHROW=</span><span class="kw">paste0</span>(PATH,<span class="st">&quot;@&quot;</span>,ROW)) <span class="op">%&gt;%</span>
-<span class="st">  </span><span class="kw">filter</span>(PATHROW <span class="op">%in%</span><span class="st"> </span><span class="kw">c</span>(<span class="st">&quot;194@22&quot;</span>,<span class="st">&quot;194@23&quot;</span>)<span class="op">&amp;</span>Land.Cloud.Cover<span class="op">&lt;</span>cloudthreshold) <span class="op">%&gt;%</span>
+<span class="st">  </span><span class="kw">filter</span>(PATHROW <span class="op">%in%</span><span class="st"> </span><span class="kw">c</span>(<span class="st">&quot;194@22&quot;</span>,<span class="st">&quot;194@23&quot;</span>)<span class="op">&amp;</span>Land.Cloud.Cover<span class="op">&lt;</span>cloudthreshold<span class="op">&amp;</span><span class="kw">grepl</span>(<span class="st">&quot;_T1&quot;</span>,Landsat.Product.Identifier)) <span class="op">%&gt;%</span>
 <span class="st">  </span><span class="kw">ggplot</span>() <span class="op">+</span>
 <span class="st">  </span><span class="kw">geom_point</span>(<span class="kw">aes</span>(<span class="dt">x=</span>year,<span class="dt">y=</span>Land.Cloud.Cover,<span class="dt">group=</span>PATHROW,<span class="dt">color=</span>PATHROW)) <span class="op">+</span>
 <span class="st">  </span><span class="kw">ylab</span>(<span class="st">&quot;Area covered by clouds&quot;</span>) <span class="op">+</span>
@@ -366,6 +368,50 @@ Figure 3.6: Scenes
 </div>
 <div id="bulk-download-scenes" class="section level2">
 <h2><span class="header-section-number">3.3</span> Bulk download scenes</h2>
+<div class="sourceCode"><pre class="sourceCode r"><code class="sourceCode r">images_df <span class="op">%&gt;%</span><span class="st"> </span>
+<span class="st">  </span><span class="kw">mutate</span>(<span class="dt">PATHROW=</span><span class="kw">paste0</span>(PATH,<span class="st">&quot;@&quot;</span>,ROW)) <span class="op">%&gt;%</span>
+<span class="st">  </span><span class="kw">filter</span>(PATHROW <span class="op">%in%</span><span class="st"> </span><span class="kw">c</span>(<span class="st">&quot;194@22&quot;</span>,<span class="st">&quot;194@23&quot;</span>)<span class="op">&amp;</span>Land.Cloud.Cover<span class="op">&lt;</span>cloudthreshold<span class="op">&amp;</span><span class="kw">grepl</span>(<span class="st">&quot;_T1&quot;</span>,Landsat.Product.Identifier)) <span class="op">%&gt;%</span><span class="st"> </span>
+<span class="st">  </span>dplyr<span class="op">::</span><span class="kw">select</span>(Landsat.Product.Identifier) <span class="op">%&gt;%</span><span class="st"> </span>
+<span class="st">  </span><span class="kw">fwrite</span>(<span class="st">&quot;scene_list.csv&quot;</span>,<span class="dt">col.names =</span> <span class="ot">FALSE</span>)</code></pre></div>
+<p>The list needs to be uploaded on <a href="http://earthexplorer.usgs.gov/filelist">Earthexplorer</a>.</p>
+<div class="figure"><span id="fig:bulkdownload"></span>
+<img src="bulkdownload_scenes.png" alt="Screenshot of [Earthexplorer](http://earthexplorer.usgs.gov/filelist) mask." width="422" />
+<p class="caption">
+Figure 3.7: Screenshot of <a href="http://earthexplorer.usgs.gov/filelist">Earthexplorer</a> mask.
+</p>
+</div>
+<p>Once the scenes are ready, I copied the source code of the website and extracted the urls to the files since they are not directly password protected. Then I downloaded them and untarred them.</p>
+<div class="sourceCode"><pre class="sourceCode r"><code class="sourceCode r">website &lt;-<span class="st"> </span><span class="kw">readLines</span>(<span class="st">&quot;data/landsatwebsite/website&quot;</span>,<span class="dt">warn=</span><span class="ot">FALSE</span>)
+urls &lt;-<span class="st"> </span>website[<span class="kw">grep</span>(<span class="st">&quot;Download&lt;/a&gt;&quot;</span>,website)] <span class="op">%&gt;%</span><span class="st"> </span>
+<span class="st">  </span><span class="kw">strsplit</span>(<span class="st">&quot;&gt;&quot;</span>) <span class="op">%&gt;%</span><span class="st"> </span>
+<span class="st">  </span><span class="kw">lapply</span>(<span class="st">`</span><span class="dt">[[</span><span class="st">`</span>,<span class="dv">1</span>) <span class="op">%&gt;%</span><span class="st"> </span>
+<span class="st">  </span><span class="kw">unlist</span>() <span class="op">%&gt;%</span><span class="st"> </span>
+<span class="st">  </span><span class="kw">gsub</span>(<span class="st">&quot;&lt;a href=</span><span class="ch">\&quot;</span><span class="st">&quot;</span>,<span class="st">&quot;&quot;</span>,.) <span class="op">%&gt;%</span><span class="st"> </span>
+<span class="st">  </span><span class="kw">gsub</span>(<span class="st">&quot;</span><span class="ch">\&quot;</span><span class="st">&quot;</span>,<span class="st">&quot;&quot;</span>,.) <span class="op">%&gt;%</span><span class="st"> </span>
+<span class="st">  </span><span class="kw">gsub</span>(<span class="st">&quot; &quot;</span>,<span class="st">&quot;&quot;</span>,.)
+
+save_files &lt;-<span class="st"> </span>urls <span class="op">%&gt;%</span><span class="st"> </span>
+<span class="st">  </span><span class="kw">strsplit</span>(<span class="st">&quot;/&quot;</span>) <span class="op">%&gt;%</span><span class="st"> </span>
+<span class="st">  </span><span class="kw">lapply</span>(<span class="st">`</span><span class="dt">[[</span><span class="st">`</span>,<span class="dv">6</span>) <span class="op">%&gt;%</span><span class="st"> </span>
+<span class="st">  </span><span class="kw">unlist</span>()
+
+<span class="kw">sapply</span>(<span class="dv">1</span><span class="op">:</span><span class="kw">length</span>(urls),<span class="cf">function</span>(x) {
+  <span class="kw">download.file</span>(<span class="dt">url =</span> urls[x],
+                <span class="dt">destfile =</span> <span class="kw">paste0</span>(<span class="st">&quot;E:/landsatscene/&quot;</span>,save_files[x]))
+})
+
+
+
+
+tar_files &lt;-<span class="st"> </span><span class="kw">list.files</span>(<span class="st">&quot;E:/landsatscene/&quot;</span>,<span class="dt">full.names =</span> <span class="ot">TRUE</span>)
+
+
+<span class="kw">sapply</span>(tar_files,<span class="cf">function</span>(x) {
+  <span class="cf">if</span> (<span class="kw">file.exists</span>(x <span class="op">%&gt;%</span><span class="st"> </span>
+<span class="st">      </span><span class="kw">gsub</span>(<span class="st">&quot;.tar.gz&quot;</span>,<span class="st">&quot;&quot;</span>,.))) <span class="kw">return</span>()
+  <span class="kw">untar</span>(x,<span class="dt">exdir =</span> x <span class="op">%&gt;%</span><span class="st"> </span>
+<span class="st">        </span><span class="kw">gsub</span>(<span class="st">&quot;.tar.gz&quot;</span>,<span class="st">&quot;&quot;</span>,.))
+  })</code></pre></div>
 
 </div>
 </div>
@@ -374,8 +420,8 @@ Figure 3.6: Scenes
           </div>
         </div>
       </div>
-<a href="extracting-road-data.html" class="navigation navigation-prev navigation-unique" aria-label="Previous page"><i class="fa fa-angle-left"></i></a>
-
+<a href="extracting-road-data.html" class="navigation navigation-prev " aria-label="Previous page"><i class="fa fa-angle-left"></i></a>
+<a href="basic-analysis.html" class="navigation navigation-next " aria-label="Next page"><i class="fa fa-angle-right"></i></a>
     </div>
   </div>
 <script src="libs/gitbook-2.6.7/js/app.min.js"></script>

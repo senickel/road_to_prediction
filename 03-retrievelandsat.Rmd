@@ -120,7 +120,8 @@ cloudthreshold <- 50
 
 number_of_scenes <- images_df %>% 
   mutate(PATHROW=paste0(PATH,"@",ROW)) %>%
-  filter(PATHROW %in% c("194@22","194@23")&Land.Cloud.Cover<cloudthreshold) %>% nrow
+  filter(PATHROW %in% c("194@22","194@23")&Land.Cloud.Cover<cloudthreshold&grepl("_T1",Landsat.Product.Identifier)) %>% 
+  nrow
 
 ```
 
@@ -129,7 +130,7 @@ I further reduce the number of scenes to only account for images with a cover le
 ```{r scenesperyear,fig.align="center",fig.cap="Scenes"}
 images_df %>% 
   mutate(PATHROW=paste0(PATH,"@",ROW)) %>%
-  filter(PATHROW %in% c("194@22","194@23")&Land.Cloud.Cover<cloudthreshold) %>%
+  filter(PATHROW %in% c("194@22","194@23")&Land.Cloud.Cover<cloudthreshold&grepl("_T1",Landsat.Product.Identifier)) %>%
   ggplot() +
   geom_point(aes(x=year,y=Land.Cloud.Cover,group=PATHROW,color=PATHROW)) +
   ylab("Area covered by clouds") +
@@ -139,61 +140,55 @@ images_df %>%
 
 ## Bulk download scenes
 
+```{r makescenelist}
+images_df %>% 
+  mutate(PATHROW=paste0(PATH,"@",ROW)) %>%
+  filter(PATHROW %in% c("194@22","194@23")&Land.Cloud.Cover<cloudthreshold&grepl("_T1",Landsat.Product.Identifier)) %>% 
+  dplyr::select(Landsat.Product.Identifier) %>% 
+  fwrite("scene_list.csv",col.names = FALSE)
 
-```{r rest,eval=FALSE,echo=FALSE}
+```
 
+The list needs to be uploaded on [Earthexplorer](http://earthexplorer.usgs.gov/filelist). 
 
-plot(wrs2[which(!is.na(over(wrs2,mv_rec,returnList =FALSE))),])
-plot(wrs2[paste0(wrs2$PATH,wrs2$ROW)%in%c("19422","19522"),])
-plot(mv_rec,add=TRUE,col="red")
-scenes<-wrs2$WRSPR[which(!is.na(over(wrs2,mv_rec,returnList =FALSE)))]
-# now put them in online 
-# earthexplorer
-# not here: this is for later https://espa.cr.usgs.gov/
-# and then retrieve all scenes
-scenes<-read.csv("a20/LSR_LANDSAT_TM_C1_265706.csv")
-mean(scenes$Land.Cloud.Cover<50)
-
-scenes$Scene.Cloud.Cover %>% density %>% plot
-
-cor.test(scenes$Land.Cloud.Cover,scenes$Scene.Cloud.Cover)
-
-# scenes<-read.csv("./a20/LSR_LANDSAT_TM_C1_244353.csv")
-# 1 scene from 1988
-# 1 scene from 2011
-
-whats_there<-list.files("./a20/scenes") %>% 
-  strsplit("-") %>% 
-  get.element.from.list(1)
-whats_there_years<-whats_there %>% 
-  substr(11,14) %>% 
-  as.numeric
-
-sc<-scenes %>% 
-  filter(Land.Cloud.Cover<50&Spacecraft.Identifier=="LANDSAT_5") %>%
-  mutate(Date=Acquisition.Date %>%
-           strsplit("/")%>% 
-           get.element.from.list(1) %>% 
-           as.numeric) %>% 
-  mutate(LPI=Landsat.Product.Identifier %>% 
-           gsub("_","",.)) %>% 
-  filter(!LPI%in%whats_there) %>% 
-  # filter(!Date%in%whats_there_years&Date>1990&
-  #          WRS.Path==194) %>% 
-  dplyr::select(Landsat.Product.Identifier,Date)
-
-sc$Landsat.Product.Identifier %>%  substr(22,23) %>% as.numeric %>% table
-sc %>% nrow
-
-sc<-sc$Landsat.Product.Identifier[sapply(sc$Date %>% 
-                                           unique,function(y) which(sc$Date==y)[1])]
+```{r bulkdownload,fig.cap="Screenshot of [Earthexplorer](http://earthexplorer.usgs.gov/filelist) mask.",echo=FALSE,cache=TRUE}
+include_graphics("bulkdownload_scenes.png")
+```
 
 
-f1<-file("./a20/2_scenes.txt")
-writeLines(text = sc,con = f1)
-close(f1)
-a20_rec_reproj<-spTransform(mv_rec,CRS("+proj=utm +zone=33 +datum=WGS84 +units=m +no_defs +ellps=WGS84 +towgs84=0,0,0"))
-a20_part_reproj<-spTransform(a20_part,CRS(proj4string(both_years[[1]])))
+Once the scenes are ready, I copied the source code of the website and extracted the urls to the files since they are not directly password protected. Then I downloaded them and untarred them.
 
+```{r downloadanduntar,eval=FALSE}
+website <- readLines("data/landsatwebsite/website",warn=FALSE)
+urls <- website[grep("Download</a>",website)] %>% 
+  strsplit(">") %>% 
+  lapply(`[[`,1) %>% 
+  unlist() %>% 
+  gsub("<a href=\"","",.) %>% 
+  gsub("\"","",.) %>% 
+  gsub(" ","",.)
+
+save_files <- urls %>% 
+  strsplit("/") %>% 
+  lapply(`[[`,6) %>% 
+  unlist()
+
+sapply(1:length(urls),function(x) {
+  download.file(url = urls[x],
+                destfile = paste0("E:/landsatscene/",save_files[x]))
+})
+
+
+
+
+tar_files <- list.files("E:/landsatscene/",full.names = TRUE)
+
+
+sapply(tar_files,function(x) {
+  if (file.exists(x %>% 
+      gsub(".tar.gz","",.))) return()
+  untar(x,exdir = x %>% 
+        gsub(".tar.gz","",.))
+  })
 ```
 

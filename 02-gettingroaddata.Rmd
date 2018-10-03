@@ -3,12 +3,13 @@
 The road data for MV is extracted via the overpass API, the necessary overpass package is provided by [hrbrmstr](https://github.com/hrbrmstr/overpass).  
 I extract two types of roads, first the highways and then all primary roads. Especially, the second query is time consuming.  
 
-```{r libs}
+```{r libs,message=FALSE}
 library(overpass)
 library(rgdal)
 library(tidyverse)
 library(raster)
 library(sf)
+library(data.table)
 library(geosampling)
 library(rgeos)
 library(knitr)
