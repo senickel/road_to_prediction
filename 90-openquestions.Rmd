@@ -1,0 +1,6 @@
+# Open Questions/Issues
+* Does it travel to Landsat 7 or even 8?
+* Does it travel geographically to other areas?
+* built in to create a tiff again
+    * in general built pipeline to assess if part of road exists or not.
+* CNN?

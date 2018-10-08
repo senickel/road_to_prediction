@@ -32,8 +32,8 @@
   <meta name="apple-mobile-web-app-status-bar-style" content="black">
   
   
-<link rel="prev" href="introduction.html">
-<link rel="next" href="selecting-landsat-images.html">
+<link rel="prev" href="basic-analysis.html">
+
 <script src="libs/jquery-2.2.3/jquery.min.js"></script>
 <link href="libs/gitbook-2.6.7/css/style.css" rel="stylesheet" />
 <link href="libs/gitbook-2.6.7/css/plugin-bookdown.css" rel="stylesheet" />
@@ -152,75 +152,17 @@ code > span.in { color: #8f5902; font-weight: bold; font-style: italic; } /* Inf
             <section class="normal" id="section-">
 <!--  <center><img src="logo/normal_3.png" width="300px"></center> -->
 <br><br><br><br>
-<div id="extracting-road-data" class="section level1">
-<h1><span class="header-section-number">Chapter 2</span> Extracting road data</h1>
-<p>The road data for MV is extracted via the overpass API, the necessary overpass package is provided by <a href="https://github.com/hrbrmstr/overpass">hrbrmstr</a>.<br />
-I extract two types of roads, first the highways and then all primary roads. Especially, the second query is time consuming.</p>
-<div class="sourceCode"><pre class="sourceCode r"><code class="sourceCode r"><span class="kw">library</span>(overpass)
-<span class="kw">library</span>(rgdal)
-<span class="kw">library</span>(tidyverse)
-<span class="kw">library</span>(raster)
-<span class="kw">library</span>(sf)
-<span class="kw">library</span>(xgboost)
-<span class="kw">library</span>(keras)
-<span class="kw">library</span>(randomForest)
-<span class="kw">library</span>(data.table)
-<span class="kw">library</span>(geosampling)
-<span class="kw">library</span>(rgeos)
-<span class="kw">library</span>(knitr)
-<span class="kw">library</span>(magrittr)
-<span class="kw">options</span>(<span class="dt">stringsAsFactors =</span> <span class="ot">FALSE</span>)</code></pre></div>
-<pre><code>## Reading layer `gadm36_DEU_1&#39; from data source `C:\Users\xnicse\Dropbox\Projects\road_to_prediction\data\spatial\gadm\gadm36_DEU_1.shp&#39; using driver `ESRI Shapefile&#39;
-## Simple feature collection with 16 features and 10 fields
-## geometry type:  MULTIPOLYGON
-## dimension:      XY
-## bbox:           xmin: 5.866251 ymin: 47.27012 xmax: 15.04181 ymax: 55.05653
-## epsg (SRID):    4326
-## proj4string:    +proj=longlat +datum=WGS84 +no_defs</code></pre>
-<div class="figure" style="text-align: center"><span id="fig:bboxmv"></span>
-<img src="road_to_prediction_files/figure-html/bboxmv-1.png" alt="Mecklenburg-Vorpommern and bounding box in red." width="672" />
-<p class="caption">
-Figure 2.1: Mecklenburg-Vorpommern and bounding box in red.
-</p>
-</div>
-<div class="sourceCode"><pre class="sourceCode r"><code class="sourceCode r">motorway_query &lt;-<span class="st"> &#39;[out:xml][timeout:100];</span>
-<span class="st">(</span>
-<span class="st">  node[&quot;highway&quot;=&quot;motorway&quot;](53,10.5,54.7,14.5);</span>
-<span class="st">  way[&quot;highway&quot;=&quot;motorway&quot;](53,10.5,54.7,14.5);</span>
-<span class="st">  relation[&quot;highway&quot;=&quot;motorway&quot;](53,10.5,54.7,14.5);</span>
-<span class="st">);</span>
-<span class="st">out body;</span>
-<span class="st">&gt;;</span>
-<span class="st">out skel qt;&#39;</span>
-  
-motorway_spatial &lt;-<span class="st"> </span><span class="kw">overpass_query</span>(motorway_query)
-
-primary_query &lt;-<span class="st"> &#39;[out:xml][timeout:100];</span>
-<span class="st">(</span>
-<span class="st">  node[&quot;highway&quot;=&quot;primary&quot;](53,10.5,54.7,14.5);</span>
-<span class="st">  way[&quot;highway&quot;=&quot;primary&quot;](53,10.5,54.7,14.5);</span>
-<span class="st">  relation[&quot;highway&quot;=&quot;primary&quot;](53,10.5,54.7,14.5);</span>
-<span class="st">);</span>
-<span class="st">out body;</span>
-<span class="st">&gt;;</span>
-<span class="st">out skel qt;&#39;</span>
-
-
-primary_spatial &lt;-<span class="st"> </span><span class="kw">overpass_query</span>(primary_query)</code></pre></div>
-<pre><code>## OGR data source with driver: ESRI Shapefile 
-## Source: &quot;C:\Users\xnicse\Dropbox\Projects\road_to_prediction\output\roads_in_mv\motorway.shp&quot;, layer: &quot;motorway&quot;
-## with 2355 features
-## It has 81 fields</code></pre>
-<pre><code>## OGR data source with driver: ESRI Shapefile 
-## Source: &quot;C:\Users\xnicse\Dropbox\Projects\road_to_prediction\output\roads_in_mv\primary.shp&quot;, layer: &quot;primary&quot;
-## with 9003 features
-## It has 271 fields</code></pre>
-<div class="figure" style="text-align: center"><span id="fig:highways"></span>
-<img src="road_to_prediction_files/figure-html/highways-1.png" alt="MV with motorways (red) and primary roads (blue)." width="672" />
-<p class="caption">
-Figure 2.2: MV with motorways (red) and primary roads (blue).
-</p>
-</div>
+<div id="open-questionsissues" class="section level1">
+<h1><span class="header-section-number">Chapter 5</span> Open Questions/Issues</h1>
+<ul>
+<li>Does it travel to Landsat 7 or even 8?</li>
+<li>Does it travel geographically to other areas?</li>
+<li>built in to create a tiff again
+<ul>
+<li>in general built pipeline to assess if part of road exists or not.</li>
+</ul></li>
+<li>CNN?</li>
+</ul>
 
 </div>
             </section>
@@ -228,8 +170,8 @@ Figure 2.2: MV with motorways (red) and primary roads (blue).
           </div>
         </div>
       </div>
-<a href="introduction.html" class="navigation navigation-prev " aria-label="Previous page"><i class="fa fa-angle-left"></i></a>
-<a href="selecting-landsat-images.html" class="navigation navigation-next " aria-label="Next page"><i class="fa fa-angle-right"></i></a>
+<a href="basic-analysis.html" class="navigation navigation-prev navigation-unique" aria-label="Previous page"><i class="fa fa-angle-left"></i></a>
+
     </div>
   </div>
 <script src="libs/gitbook-2.6.7/js/app.min.js"></script>

@@ -9,6 +9,9 @@ library(rgdal)
 library(tidyverse)
 library(raster)
 library(sf)
+library(xgboost)
+library(keras)
+library(randomForest)
 library(data.table)
 library(geosampling)
 library(rgeos)
@@ -80,7 +83,7 @@ primary_spatial <- overpass_query(primary_query)
 
 
 ```{r highways,echo=FALSE,cache=TRUE,fig.align="center",fig.cap="MV with motorways (red) and primary roads (blue)."}
-motorways <- readOGR("ouput/roads_in_mv/motorway.shp") %>% 
+motorways <- readOGR("output/roads_in_mv/motorway.shp") %>% 
   gLineMerge()
 proj4string(motorways) <- CRS("+init=epsg:4326")
 
@@ -88,7 +91,7 @@ motorways <- motorways %>%
     crop(as(mv,"Spatial"))
 
 
-primary <- readOGR("ouput/roads_in_mv/primary.shp") %>% 
+primary <- readOGR("output/roads_in_mv/primary.shp") %>% 
   gLineMerge()
 
 proj4string(primary) <- CRS("+init=epsg:4326")

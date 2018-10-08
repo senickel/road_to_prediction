@@ -25,7 +25,7 @@
 <meta name="author" content="Sebastian Nickel">
 
 
-<meta name="date" content="2018-10-03">
+<meta name="date" content="2018-10-06">
 
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <meta name="apple-mobile-web-app-capable" content="yes">
@@ -33,7 +33,7 @@
   
   
 <link rel="prev" href="selecting-landsat-images.html">
-
+<link rel="next" href="open-questionsissues.html">
 <script src="libs/jquery-2.2.3/jquery.min.js"></script>
 <link href="libs/gitbook-2.6.7/css/style.css" rel="stylesheet" />
 <link href="libs/gitbook-2.6.7/css/plugin-bookdown.css" rel="stylesheet" />
@@ -132,6 +132,7 @@ code > span.in { color: #8f5902; font-weight: bold; font-style: italic; } /* Inf
 <li class="chapter" data-level="3.3" data-path="selecting-landsat-images.html"><a href="selecting-landsat-images.html#bulk-download-scenes"><i class="fa fa-check"></i><b>3.3</b> Bulk download scenes</a></li>
 </ul></li>
 <li class="chapter" data-level="4" data-path="basic-analysis.html"><a href="basic-analysis.html"><i class="fa fa-check"></i><b>4</b> Basic Analysis</a></li>
+<li class="chapter" data-level="5" data-path="open-questionsissues.html"><a href="open-questionsissues.html"><i class="fa fa-check"></i><b>5</b> Open Questions/Issues</a></li>
 </ul>
 
       </nav>
@@ -238,13 +239,273 @@ values_df &lt;-<span class="st"> </span><span class="kw">lapply</span>(listed_ra
 values_df<span class="op">$</span>motorway &lt;-<span class="st"> </span><span class="dv">0</span>
 values_df<span class="op">$</span>motorway[covered_by_road] &lt;-<span class="st"> </span><span class="dv">1</span>
 
-none_na &lt;-<span class="st"> </span>values_df<span class="op">$</span>V1 <span class="op">%&gt;%</span><span class="st"> </span>
+identify_na &lt;-<span class="st"> </span><span class="kw">sapply</span>(<span class="kw">paste0</span>(<span class="st">&quot;V&quot;</span>,<span class="dv">1</span><span class="op">:</span><span class="dv">6</span>),<span class="cf">function</span>(x) {
+   values_df[,x] <span class="op">%&gt;%</span><span class="st"> </span>
 <span class="st">  </span><span class="kw">is.na</span>() <span class="op">%&gt;%</span><span class="st"> </span>
-<span class="st">  `</span><span class="dt">!</span><span class="st">`</span> <span class="op">%&gt;%</span><span class="st"> </span>
 <span class="st">  </span><span class="kw">which</span>()
+}) <span class="op">%&gt;%</span>
+<span class="st">  </span><span class="kw">unlist</span>() <span class="op">%&gt;%</span><span class="st"> </span>
+<span class="st">  </span><span class="kw">unique</span>()
 
-values_df &lt;-<span class="st"> </span>values_df <span class="op">%&gt;%</span><span class="st"> </span>
-<span class="st">  </span><span class="kw">slice</span>(none_na)</code></pre></div>
+<span class="cf">if</span> (<span class="kw">length</span>(identify_na) <span class="op">&gt;</span><span class="st"> </span><span class="dv">0</span>) {
+  values_df &lt;-<span class="st"> </span>values_df <span class="op">%&gt;%</span><span class="st"> </span>
+<span class="st">    </span>dplyr<span class="op">::</span><span class="kw">slice</span>(<span class="op">-</span>identify_na)
+}
+
+norm_mean &lt;-<span class="st"> </span><span class="cf">function</span>(x) {
+  (x<span class="op">-</span><span class="kw">mean</span>(x))<span class="op">/</span>(<span class="kw">max</span>(x)<span class="op">-</span><span class="kw">min</span>(x))
+}
+
+values_df[,<span class="kw">paste0</span>(<span class="st">&quot;V&quot;</span>,<span class="dv">1</span><span class="op">:</span><span class="dv">6</span>)] &lt;-<span class="st"> </span>values_df[,<span class="kw">paste0</span>(<span class="st">&quot;V&quot;</span>,<span class="dv">1</span><span class="op">:</span><span class="dv">6</span>)] <span class="op">%&gt;%</span><span class="st"> </span>
+<span class="st">  </span><span class="kw">apply</span>(<span class="dv">2</span>,norm_mean)</code></pre></div>
+<div class="sourceCode"><pre class="sourceCode r"><code class="sourceCode r">train_and_test_data &lt;-<span class="st"> </span><span class="cf">function</span>(seed,df,<span class="dt">trainsize=</span><span class="fl">0.8</span>,
+                                <span class="dt">replace_motorway=</span><span class="ot">TRUE</span>,
+                                <span class="dt">sample_size=</span><span class="fl">1e4</span>,
+                                <span class="dt">sample_test=</span><span class="fl">1e4</span>) {
+  <span class="kw">set.seed</span>(seed)
+  df<span class="op">$</span>motorway &lt;-<span class="st"> </span><span class="kw">as.factor</span>(df<span class="op">$</span>motorway)
+  motorway_pixel &lt;-<span class="st"> </span><span class="kw">which</span>(df<span class="op">$</span>motorway<span class="op">==</span><span class="dv">1</span>)
+  no_motorway_pixel &lt;-<span class="st"> </span><span class="kw">which</span>(df<span class="op">$</span>motorway<span class="op">==</span><span class="dv">0</span>)
+  
+  sampled_motorway_pixel &lt;-<span class="st"> </span><span class="kw">sample</span>(motorway_pixel,
+                                   <span class="kw">round</span>(trainsize<span class="op">*</span><span class="kw">length</span>(motorway_pixel)))
+  sampled_no_motorway_pixel &lt;-<span class="st"> </span><span class="kw">sample</span>(no_motorway_pixel,
+                                      <span class="kw">round</span>(trainsize<span class="op">*</span><span class="kw">length</span>(no_motorway_pixel)))
+  
+  test_motorway_pixel &lt;-<span class="st"> </span>motorway_pixel[<span class="op">!</span>motorway_pixel <span class="op">%in%</span><span class="st"> </span>
+<span class="st">                                          </span>sampled_motorway_pixel]
+  test_no_motorway_pixel &lt;-<span class="st"> </span>no_motorway_pixel[<span class="op">!</span>no_motorway_pixel <span class="op">%in%</span><span class="st"> </span>
+<span class="st">                                                </span>sampled_no_motorway_pixel]
+  
+  values_df_train &lt;-<span class="st"> </span>df[<span class="kw">c</span>(sampled_motorway_pixel,sampled_no_motorway_pixel),]
+  values_df_test &lt;-<span class="st"> </span>df[<span class="kw">c</span>(test_motorway_pixel,test_no_motorway_pixel),]
+  
+  
+  
+  <span class="co"># train</span>
+  <span class="cf">if</span> (replace_motorway) {
+    selected_motorway &lt;-<span class="st"> </span><span class="kw">sample</span>(sampled_motorway_pixel,sample_size,<span class="dt">replace=</span><span class="ot">TRUE</span>)
+    selected_non_motorway &lt;-<span class="st"> </span><span class="kw">sample</span>(sampled_no_motorway_pixel,sample_size)
+  } <span class="cf">else</span> {
+    selected_motorway &lt;-<span class="st"> </span>sampled_motorway_pixel
+    selected_non_motorway &lt;-<span class="st"> </span><span class="kw">sample</span>(sampled_no_motorway_pixel,sample_size)
+  }
+  
+  subset &lt;-<span class="st"> </span><span class="kw">c</span>(selected_non_motorway,selected_motorway)
+  values_df_model &lt;-<span class="st"> </span>dplyr<span class="op">::</span><span class="kw">slice</span>(values_df,subset)
+  
+  <span class="co"># test</span>
+  subset_test &lt;-<span class="st"> </span><span class="kw">c</span>(test_motorway_pixel,<span class="kw">sample</span>(test_no_motorway_pixel,
+                                              sample_test))
+  values_df_test &lt;-<span class="st"> </span>dplyr<span class="op">::</span><span class="kw">slice</span>(values_df,subset_test)
+  
+  
+  <span class="kw">list</span>(<span class="dt">train=</span>values_df_model,
+       <span class="dt">test=</span>values_df_test)
+}</code></pre></div>
+<div class="sourceCode"><pre class="sourceCode r"><code class="sourceCode r"><span class="kw">set.seed</span>(<span class="dv">15</span>)
+random_number &lt;-<span class="st"> </span><span class="kw">sample</span>(<span class="fl">1e5</span>,<span class="dv">100</span>)</code></pre></div>
+<div class="sourceCode"><pre class="sourceCode r"><code class="sourceCode r">generated &lt;-<span class="st"> </span><span class="kw">lapply</span>(random_number,<span class="cf">function</span>(x) {
+  train_test_list &lt;-<span class="st"> </span><span class="kw">train_and_test_data</span>(<span class="dt">seed =</span> x,
+                                         <span class="dt">df =</span> values_df,
+                                         <span class="dt">trainsize =</span> <span class="fl">0.8</span>,
+                                         <span class="dt">sample_size =</span> <span class="fl">1e4</span>,
+                                         <span class="dt">sample_test =</span> <span class="fl">1e4</span>)
+  values_df_model &lt;-<span class="st"> </span>train_test_list<span class="op">$</span>train
+  values_df_test &lt;-<span class="st"> </span>train_test_list<span class="op">$</span>test
+  
+  <span class="co"># model</span>
+  model_linear &lt;-<span class="st"> </span><span class="kw">lm</span>(motorway<span class="op">~</span>V1<span class="op">+</span>V2<span class="op">+</span>V3<span class="op">+</span>V4<span class="op">+</span>V5<span class="op">+</span>V6,<span class="dt">data=</span>values_df_model) 
+  
+  <span class="co"># predict</span>
+  values_df_test<span class="op">$</span>predicted &lt;-<span class="st"> </span><span class="kw">predict</span>(model_linear,values_df_test)
+  
+  values_df_test &lt;-<span class="st"> </span>values_df_test <span class="op">%&gt;%</span><span class="st"> </span>
+<span class="st">    </span><span class="kw">mutate</span>(<span class="dt">predicted_binary =</span> <span class="kw">as.numeric</span>(predicted<span class="op">&gt;</span><span class="fl">0.5</span>),
+           <span class="dt">equal =</span> <span class="kw">as.numeric</span>(motorway<span class="op">==</span>predicted_binary))
+  
+  
+  values_df_test <span class="op">%&gt;%</span><span class="st"> </span>
+<span class="st">    </span>dplyr<span class="op">::</span><span class="kw">rename</span>(<span class="dt">Type=</span>motorway) <span class="op">%&gt;%</span><span class="st"> </span>
+<span class="st">    </span><span class="kw">group_by</span>(Type) <span class="op">%&gt;%</span>
+<span class="st">    </span><span class="kw">summarise</span>(<span class="dt">Value =</span> <span class="kw">sum</span>(equal)<span class="op">/</span><span class="kw">n</span>()) <span class="op">%&gt;%</span><span class="st"> </span>
+<span class="st">    </span><span class="kw">mutate</span>(<span class="dt">Type=</span><span class="kw">ifelse</span>(Type<span class="op">==</span><span class="dv">1</span>,<span class="st">&quot;motorway_accuracy&quot;</span>,<span class="st">&quot;none_motorway_accuracy&quot;</span>))
+  
+}) <span class="op">%&gt;%</span><span class="st"> </span>
+<span class="st">  </span><span class="kw">do.call</span>(rbind,.)</code></pre></div>
+<div class="sourceCode"><pre class="sourceCode r"><code class="sourceCode r">generated_rf &lt;-<span class="st"> </span><span class="kw">lapply</span>(random_number,<span class="cf">function</span>(x) {
+  values_df<span class="op">$</span>motorway &lt;-<span class="st"> </span><span class="kw">as.factor</span>(values_df<span class="op">$</span>motorway)
+  train_test_list &lt;-<span class="st"> </span><span class="kw">train_and_test_data</span>(<span class="dt">seed =</span> x,
+                                         <span class="dt">df =</span> values_df,
+                                         <span class="dt">trainsize =</span> <span class="fl">0.8</span>,
+                                         <span class="dt">replace_motorway =</span> <span class="ot">FALSE</span>,
+                                         <span class="dt">sample_size =</span> <span class="fl">1e3</span>,
+                                         <span class="dt">sample_test =</span> <span class="fl">1e4</span>)
+  values_df_model &lt;-<span class="st"> </span>train_test_list<span class="op">$</span>train
+  values_df_test &lt;-<span class="st"> </span>train_test_list<span class="op">$</span>test
+  
+  <span class="co"># train</span>
+  model_rf&lt;-<span class="kw">randomForest</span>(
+    <span class="dt">formula =</span> motorway<span class="op">~</span>V1<span class="op">+</span>V2<span class="op">+</span>V3<span class="op">+</span>V4<span class="op">+</span>V5<span class="op">+</span>V6,
+    <span class="dt">data=</span> values_df_model,
+    <span class="dt">ntree=</span><span class="dv">500</span>,
+    <span class="dt">importance=</span><span class="ot">TRUE</span>)<span class="co">#,</span>
+
+  <span class="co"># predict</span>
+  values_df_test<span class="op">$</span>predicted &lt;-<span class="st"> </span><span class="kw">predict</span>(model_rf,values_df_test <span class="op">%&gt;%</span><span class="st"> </span>
+<span class="st">                                        </span>dplyr<span class="op">::</span><span class="kw">select</span>(<span class="kw">paste0</span>(<span class="st">&quot;V&quot;</span>,<span class="dv">1</span><span class="op">:</span><span class="dv">6</span>),motorway))
+  
+  values_df_test2 &lt;-<span class="st"> </span>values_df_test <span class="op">%&gt;%</span><span class="st"> </span>
+<span class="st">    </span><span class="kw">mutate</span>(<span class="dt">equal =</span> <span class="kw">as.numeric</span>(motorway<span class="op">==</span>predicted))
+  
+  values_df_test2 <span class="op">%&gt;%</span><span class="st"> </span>
+<span class="st">    </span>dplyr<span class="op">::</span><span class="kw">rename</span>(<span class="dt">Type=</span>motorway) <span class="op">%&gt;%</span><span class="st"> </span>
+<span class="st">    </span><span class="kw">group_by</span>(Type) <span class="op">%&gt;%</span>
+<span class="st">    </span><span class="kw">summarise</span>(<span class="dt">Value =</span> <span class="kw">sum</span>(equal)<span class="op">/</span><span class="kw">n</span>()) <span class="op">%&gt;%</span><span class="st"> </span>
+<span class="st">    </span><span class="kw">mutate</span>(<span class="dt">Type=</span><span class="kw">ifelse</span>(Type<span class="op">==</span><span class="dv">1</span>,<span class="st">&quot;motorway_accuracy&quot;</span>,<span class="st">&quot;none_motorway_accuracy&quot;</span>))
+}) <span class="op">%&gt;%</span><span class="st"> </span>
+<span class="st">  </span><span class="kw">do.call</span>(rbind,.)</code></pre></div>
+<div class="sourceCode"><pre class="sourceCode r"><code class="sourceCode r">generated_xgb &lt;-<span class="st"> </span><span class="kw">lapply</span>(random_number,<span class="cf">function</span>(x) {
+  train_test_list &lt;-<span class="st"> </span><span class="kw">train_and_test_data</span>(<span class="dt">seed =</span> x,
+                                         <span class="dt">df =</span> values_df,
+                                         <span class="dt">trainsize =</span> <span class="fl">0.8</span>,
+                                         <span class="dt">replace_motorway =</span> <span class="ot">FALSE</span>,
+                                         <span class="dt">sample_size =</span> <span class="fl">1e3</span>,
+                                         <span class="dt">sample_test =</span> <span class="fl">1e4</span>)
+  values_df_model &lt;-<span class="st"> </span>train_test_list<span class="op">$</span>train
+  values_df_test &lt;-<span class="st"> </span>train_test_list<span class="op">$</span>test
+  
+  train_dat&lt;-<span class="kw">xgb.DMatrix</span>(
+    <span class="dt">data =</span> values_df_model <span class="op">%&gt;%</span><span class="st"> </span>
+<span class="st">      </span>dplyr<span class="op">::</span><span class="kw">select</span>(<span class="kw">paste0</span>(<span class="st">&quot;V&quot;</span>,<span class="dv">1</span><span class="op">:</span><span class="dv">6</span>)) <span class="op">%&gt;%</span><span class="st"> </span>
+<span class="st">      </span><span class="kw">as.matrix</span>(),
+    <span class="dt">label =</span> values_df_model <span class="op">%&gt;%</span><span class="st"> </span>
+<span class="st">      </span>dplyr<span class="op">::</span><span class="kw">select</span>(motorway) <span class="op">%&gt;%</span><span class="st"> </span>
+<span class="st">      </span>unlist)
+  
+  
+  model_xgboost&lt;-<span class="kw">xgboost</span>(<span class="dt">data =</span> train_dat, <span class="co"># the data   </span>
+                         <span class="dt">nrounds=</span><span class="dv">1000</span>,
+                         <span class="dt">eta=</span><span class="fl">0.025</span>,
+                         <span class="dt">subsample=</span><span class="fl">0.63</span>,
+                         <span class="dt">lamba=</span><span class="fl">0.001</span>,
+                         <span class="dt">objective =</span> <span class="st">&quot;binary:logistic&quot;</span>)  
+  
+  test_dat&lt;-<span class="kw">xgb.DMatrix</span>(
+    <span class="dt">data =</span> values_df_test <span class="op">%&gt;%</span><span class="st"> </span>
+<span class="st">      </span>dplyr<span class="op">::</span><span class="kw">select</span>(<span class="kw">paste0</span>(<span class="st">&quot;V&quot;</span>,<span class="dv">1</span><span class="op">:</span><span class="dv">6</span>)) <span class="op">%&gt;%</span><span class="st"> </span>
+<span class="st">      </span><span class="kw">as.matrix</span>(),
+    <span class="dt">label =</span> values_df_test <span class="op">%&gt;%</span><span class="st"> </span>
+<span class="st">      </span>dplyr<span class="op">::</span><span class="kw">select</span>(motorway) <span class="op">%&gt;%</span><span class="st"> </span>
+<span class="st">      </span>unlist)
+  
+  values_df_test<span class="op">$</span>predicted &lt;-<span class="st"> </span><span class="kw">predict</span>(model_xgboost,test_dat)
+  
+  values_df_test2 &lt;-<span class="st"> </span>values_df_test <span class="op">%&gt;%</span><span class="st"> </span>
+<span class="st">    </span><span class="kw">mutate</span>(<span class="dt">predicted_binary =</span> <span class="kw">as.numeric</span>(predicted<span class="op">&gt;</span><span class="fl">0.5</span>),
+           <span class="dt">equal =</span> <span class="kw">as.numeric</span>(motorway<span class="op">==</span>predicted_binary))
+  
+  
+  values_df_test2 <span class="op">%&gt;%</span><span class="st"> </span>
+<span class="st">    </span>dplyr<span class="op">::</span><span class="kw">rename</span>(<span class="dt">Type=</span>motorway) <span class="op">%&gt;%</span><span class="st"> </span>
+<span class="st">    </span><span class="kw">group_by</span>(Type) <span class="op">%&gt;%</span>
+<span class="st">    </span><span class="kw">summarise</span>(<span class="dt">Value =</span> <span class="kw">sum</span>(equal)<span class="op">/</span><span class="kw">n</span>()) <span class="op">%&gt;%</span><span class="st"> </span>
+<span class="st">    </span><span class="kw">mutate</span>(<span class="dt">Type=</span><span class="kw">ifelse</span>(Type<span class="op">==</span><span class="dv">1</span>,<span class="st">&quot;motorway_accuracy&quot;</span>,<span class="st">&quot;none_motorway_accuracy&quot;</span>))
+}) <span class="op">%&gt;%</span><span class="st"> </span>
+<span class="st">  </span><span class="kw">do.call</span>(rbind,.)</code></pre></div>
+<div class="sourceCode"><pre class="sourceCode r"><code class="sourceCode r">generated_keras &lt;-<span class="st"> </span><span class="kw">lapply</span>(random_number,<span class="cf">function</span>(x) {
+train_test_list &lt;-<span class="st"> </span><span class="kw">train_and_test_data</span>(<span class="dt">seed =</span> x,
+                                       <span class="dt">df =</span> values_df,
+                                       <span class="dt">trainsize =</span> <span class="fl">0.8</span>,
+                                       <span class="dt">replace_motorway =</span> <span class="ot">TRUE</span>,
+                                       <span class="dt">sample_size =</span> <span class="fl">2e4</span>,
+                                       <span class="dt">sample_test =</span> <span class="fl">1e4</span>)
+values_df_model &lt;-<span class="st"> </span>train_test_list<span class="op">$</span>train
+values_df_test &lt;-<span class="st"> </span>train_test_list<span class="op">$</span>test
+
+
+
+model &lt;-<span class="st"> </span><span class="kw">keras_model_sequential</span>()  
+model <span class="op">%&gt;%</span><span class="st"> </span>
+<span class="st">  </span><span class="kw">layer_dense</span>(<span class="dt">units =</span> <span class="dv">256</span>, <span class="dt">activation =</span> <span class="st">&#39;elu&#39;</span>,
+              <span class="dt">input_shape =</span> <span class="kw">c</span>(<span class="dv">6</span>),<span class="dt">kernel_regularizer =</span> <span class="kw">regularizer_l2</span>(<span class="fl">0.001</span>)) <span class="op">%&gt;%</span>
+<span class="st">  </span><span class="kw">layer_dense</span>(<span class="dt">units =</span> <span class="dv">128</span>, <span class="dt">activation =</span> <span class="st">&#39;elu&#39;</span>,
+              <span class="dt">input_shape =</span> <span class="kw">c</span>(<span class="dv">6</span>),<span class="dt">kernel_regularizer =</span> <span class="kw">regularizer_l2</span>(<span class="fl">0.001</span>)) <span class="op">%&gt;%</span>
+<span class="st">  </span>
+<span class="st">  </span><span class="kw">layer_dense</span>(<span class="dt">units =</span> <span class="dv">64</span>, <span class="dt">activation =</span> <span class="st">&#39;elu&#39;</span>,
+              <span class="dt">input_shape =</span> <span class="kw">c</span>(<span class="dv">6</span>),<span class="dt">kernel_regularizer =</span> <span class="kw">regularizer_l2</span>(<span class="fl">0.0001</span>)) <span class="op">%&gt;%</span>
+<span class="st">  </span><span class="kw">layer_dense</span>(<span class="dt">units =</span> <span class="dv">32</span>, <span class="dt">activation =</span> <span class="st">&#39;elu&#39;</span>,
+              <span class="dt">input_shape =</span> <span class="kw">c</span>(<span class="dv">6</span>),<span class="dt">kernel_regularizer =</span> <span class="kw">regularizer_l2</span>(<span class="fl">0.0001</span>)) <span class="op">%&gt;%</span>
+<span class="st">  </span><span class="kw">layer_dense</span>(<span class="dt">units =</span> <span class="dv">16</span>,<span class="dt">activation =</span> <span class="st">&#39;elu&#39;</span>,
+              <span class="dt">input_shape =</span> <span class="kw">c</span>(<span class="dv">6</span>),<span class="dt">kernel_regularizer =</span> <span class="kw">regularizer_l2</span>(<span class="fl">0.0001</span>)) <span class="op">%&gt;%</span>
+<span class="st">  </span><span class="kw">layer_dense</span>(<span class="dt">units =</span> <span class="dv">8</span>, <span class="dt">activation =</span> <span class="st">&#39;elu&#39;</span>,
+              <span class="dt">kernel_regularizer =</span> <span class="kw">regularizer_l2</span>(<span class="fl">0.0001</span>)) <span class="op">%&gt;%</span><span class="st"> </span>
+<span class="st">  </span><span class="kw">layer_dense</span>(<span class="dt">units =</span> <span class="dv">4</span>, <span class="dt">activation =</span> <span class="st">&#39;elu&#39;</span>,
+              <span class="dt">kernel_regularizer =</span> <span class="kw">regularizer_l2</span>(<span class="fl">0.0001</span>)) <span class="op">%&gt;%</span><span class="st"> </span>
+<span class="st">  </span><span class="kw">layer_dense</span>(<span class="dt">units =</span> <span class="dv">3</span>, <span class="dt">activation =</span> <span class="st">&#39;elu&#39;</span>,
+              <span class="dt">kernel_regularizer =</span> <span class="kw">regularizer_l2</span>(<span class="fl">0.0001</span>)) <span class="op">%&gt;%</span><span class="st"> </span>
+<span class="st">  </span><span class="kw">layer_dense</span>(<span class="dt">units =</span> <span class="dv">2</span>, <span class="dt">activation =</span> <span class="st">&#39;sigmoid&#39;</span>)
+
+
+
+
+model <span class="op">%&gt;%</span><span class="st"> </span>
+<span class="st">  </span><span class="kw">compile</span>(
+    <span class="dt">loss =</span> <span class="st">&#39;binary_crossentropy&#39;</span>,
+    <span class="co">#loss = &#39;categorical_crossentropy&#39;,</span>
+    <span class="co"># optimizer= &#39;rmsprop&#39;,</span>
+    <span class="dt">optimizer =</span> <span class="st">&#39;adam&#39;</span>,
+    <span class="dt">metrics =</span> <span class="kw">c</span>(<span class="st">&#39;accuracy&#39;</span>))
+
+<span class="kw">k_set_value</span>(model<span class="op">$</span>optimizer<span class="op">$</span>lr, <span class="fl">0.00001</span>)
+<span class="kw">k_set_value</span>(model<span class="op">$</span>optimizer<span class="op">$</span>decay, <span class="fl">0.00001</span><span class="op">/</span><span class="dv">100</span>)
+
+
+history &lt;-<span class="st"> </span>model <span class="op">%&gt;%</span>
+<span class="st">  </span><span class="kw">fit</span>(
+    <span class="dt">x =</span> values_df_model <span class="op">%&gt;%</span><span class="st"> </span>
+<span class="st">      </span>dplyr<span class="op">::</span><span class="kw">select</span>(<span class="kw">paste0</span>(<span class="st">&quot;V&quot;</span>,<span class="dv">1</span><span class="op">:</span><span class="dv">6</span>)) <span class="op">%&gt;%</span><span class="st"> </span>
+<span class="st">      </span><span class="kw">apply</span>(<span class="dv">2</span>,as.numeric),
+    <span class="dt">y =</span> values_df_model <span class="op">%&gt;%</span><span class="st"> </span>
+<span class="st">      </span>dplyr<span class="op">::</span><span class="kw">select</span>(motorway) <span class="op">%&gt;%</span><span class="st"> </span>
+<span class="st">      </span><span class="kw">apply</span>(<span class="dv">2</span>,as.numeric)<span class="op">%&gt;%</span><span class="st"> </span>
+<span class="st">      </span><span class="kw">to_categorical</span>(),
+    <span class="dt">epochs =</span> <span class="dv">60</span>, <span class="dt">batch_size =</span> <span class="dv">30</span>, 
+    <span class="dt">validation_split =</span> <span class="fl">0.1</span>)
+
+predicted &lt;-<span class="st"> </span>model <span class="op">%&gt;%</span><span class="st"> </span>
+<span class="st">  </span><span class="kw">predict</span>(values_df_test <span class="op">%&gt;%</span><span class="st"> </span>
+<span class="st">            </span>dplyr<span class="op">::</span><span class="kw">select</span>(<span class="kw">paste0</span>(<span class="st">&quot;V&quot;</span>,<span class="dv">1</span><span class="op">:</span><span class="dv">6</span>)) <span class="op">%&gt;%</span>
+<span class="st">            </span><span class="kw">apply</span>(<span class="dv">2</span>,as.numeric)) 
+values_df_test<span class="op">$</span>predicted &lt;-<span class="st"> </span>predicted[,<span class="dv">2</span>]  
+
+
+values_df_test2 &lt;-<span class="st"> </span>values_df_test <span class="op">%&gt;%</span><span class="st"> </span>
+<span class="st">  </span><span class="kw">mutate</span>(<span class="dt">predicted_binary =</span> <span class="kw">as.numeric</span>(predicted<span class="op">&gt;</span><span class="fl">0.5</span>),
+         <span class="dt">equal =</span> <span class="kw">as.numeric</span>(motorway<span class="op">==</span>predicted_binary))
+
+
+values_df_test2 <span class="op">%&gt;%</span><span class="st"> </span>
+<span class="st">  </span>dplyr<span class="op">::</span><span class="kw">rename</span>(<span class="dt">Type=</span>motorway) <span class="op">%&gt;%</span><span class="st"> </span>
+<span class="st">  </span><span class="kw">group_by</span>(Type) <span class="op">%&gt;%</span>
+<span class="st">  </span><span class="kw">summarise</span>(<span class="dt">Value =</span> <span class="kw">sum</span>(equal)<span class="op">/</span><span class="kw">n</span>()) <span class="op">%&gt;%</span><span class="st"> </span>
+<span class="st">  </span><span class="kw">mutate</span>(<span class="dt">Type=</span><span class="kw">ifelse</span>(Type<span class="op">==</span><span class="dv">1</span>,<span class="st">&quot;motorway_accuracy&quot;</span>,<span class="st">&quot;none_motorway_accuracy&quot;</span>))
+}) <span class="op">%&gt;%</span><span class="st"> </span>
+<span class="st">  </span><span class="kw">do.call</span>(rbind,.)</code></pre></div>
+<div class="sourceCode"><pre class="sourceCode r"><code class="sourceCode r"><span class="kw">list.files</span>(<span class="st">&quot;output/one_scene_model_eval/&quot;</span>,<span class="dt">full.names=</span><span class="ot">TRUE</span>) <span class="op">%&gt;%</span><span class="st"> </span>
+<span class="st">  </span><span class="kw">lapply</span>(<span class="cf">function</span>(x) {
+    dat &lt;-<span class="st"> </span><span class="kw">read.csv</span>(x)
+    dat<span class="op">$</span>Estimator &lt;-<span class="st"> </span>x <span class="op">%&gt;%</span><span class="st"> </span>
+<span class="st">      </span><span class="kw">strsplit</span>(<span class="st">&quot;/&quot;</span>) <span class="op">%&gt;%</span><span class="st"> </span>
+<span class="st">      </span><span class="kw">lapply</span>(<span class="st">`</span><span class="dt">[</span><span class="st">`</span>,<span class="dv">3</span>) <span class="op">%&gt;%</span><span class="st"> </span>
+<span class="st">      </span>unlist <span class="op">%&gt;%</span><span class="st"> </span>
+<span class="st">      </span><span class="kw">gsub</span>(<span class="st">&quot;.csv&quot;</span>,<span class="st">&quot;&quot;</span>,.)
+    dat
+  }) <span class="op">%&gt;%</span><span class="st"> </span>
+<span class="st">  </span><span class="kw">do.call</span>(rbind,.) <span class="op">%&gt;%</span><span class="st"> </span>
+<span class="st">  </span><span class="kw">ggplot</span>() <span class="op">+</span>
+<span class="st">  </span><span class="kw">geom_violin</span>(<span class="kw">aes</span>(<span class="dt">x=</span>Type,<span class="dt">y=</span>Value,<span class="dt">fill=</span>Estimator))</code></pre></div>
+<p><img src="road_to_prediction_files/figure-html/evalmodelsfor1scene-1.png" width="672" /></p>
 
 </div>
             </section>
@@ -252,8 +513,8 @@ values_df &lt;-<span class="st"> </span>values_df <span class="op">%&gt;%</span>
           </div>
         </div>
       </div>
-<a href="selecting-landsat-images.html" class="navigation navigation-prev navigation-unique" aria-label="Previous page"><i class="fa fa-angle-left"></i></a>
-
+<a href="selecting-landsat-images.html" class="navigation navigation-prev " aria-label="Previous page"><i class="fa fa-angle-left"></i></a>
+<a href="open-questionsissues.html" class="navigation navigation-next " aria-label="Next page"><i class="fa fa-angle-right"></i></a>
     </div>
   </div>
 <script src="libs/gitbook-2.6.7/js/app.min.js"></script>
