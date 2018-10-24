@@ -62,18 +62,21 @@ covered_by_road <- mask(cloud_identification_2,motorways_raster) %>%
 cloud_identification_values_3 <- ifelse(is.na(cloud_identification_values_2),0,cloud_identification_values_2)
 ```
 
-```{r tableofcloud,echo=FALSE,cache=TRUE}
+```{r tableofcloud,echo=FALSE,cache=FALSE}
 Rcpp::sourceCpp("cppsource/table_cpp.cpp")
-cbind(table_cpp(cloud_identification_values_2[!is.na(cloud_identification_values_2)]) %>% 
+cbind(
+  table_cpp(cloud_identification_values_2[!is.na(cloud_identification_values_2)]) %>% 
   do.call(rbind,.),c(sum(is.na(cloud_identification_values_2)),NA)) %>% 
   t %>% 
   as.data.frame %>% 
-  mutate(lengths = 100*lengths/sum(lengths)) %>% 
-  rename(Percentage = round(lengths,2),
+  mutate(lengths = round(100*lengths/sum(lengths),2)) %>% 
+  rename(Percentage = lengths,
          Values = values) %>% 
-  kable(caption="Coverage for different values. `NA` are the rims of the picture, 0 is cloud covered, and 1 is free sight.")
+  kable(caption="Coverage for different values. `NA` are the rims of the picture, `0` is cloud covered, and `1` is free sight.")
 ```
 
+The following code chunk loads each band, crops it to the extent of MV, and sets all pixel to NA that either have no undisturbed sight or lie outside of MV.
+The values are bound together in a rectengular data.frame with the added information whether the specific pixel is a motorway or not. All NAs are subsequently removed from the data.frame and all values are mean normalized.
 
 ```{r rasterbrick1,cache=TRUE}
 listed_raster <- list.files("E:/landsatscene/LT051940232011072701T1-SC20180926185810/",pattern="band[0-9].tif$",full.names = TRUE)
@@ -120,6 +123,8 @@ values_df[,paste0("V",1:6)] <- values_df[,paste0("V",1:6)] %>%
 ```
 
 
+
+The `train_and_test_data` function is creating a train and test set. If `replace_motorway` is set to `TRUE` the same amount of motorway pixel will be sampled for the training data as of no motorway pixel. This way, the distribution will 
 
 ```{r functions1}
 train_and_test_data <- function(seed,df,trainsize=0.8,
@@ -168,7 +173,13 @@ train_and_test_data <- function(seed,df,trainsize=0.8,
   list(train=values_df_model,
        test=values_df_test)
 }
-
+predicted <- function(data) {
+    data %>% 
+    dplyr::rename(Type=motorway) %>% 
+    group_by(Type) %>%
+    summarise(Value = sum(equal)/n()) %>% 
+    mutate(Type=ifelse(Type==1,"Motorway","None Motorway"))
+}
 
 ```
 
@@ -183,6 +194,7 @@ random_number <- sample(1e5,100)
 
 ```{r linearmodel,echo=TRUE,eval=FALSE}
 generated <- lapply(random_number,function(x) {
+  
   train_test_list <- train_and_test_data(seed = x,
                                          df = values_df,
                                          trainsize = 0.8,
@@ -203,11 +215,8 @@ generated <- lapply(random_number,function(x) {
   
   
   values_df_test %>% 
-    dplyr::rename(Type=motorway) %>% 
-    group_by(Type) %>%
-    summarise(Value = sum(equal)/n()) %>% 
-    mutate(Type=ifelse(Type==1,"motorway_accuracy","none_motorway_accuracy"))
-  
+    predicted()
+    
 }) %>% 
   do.call(rbind,.)
 ```
@@ -246,10 +255,7 @@ generated_rf <- lapply(random_number,function(x) {
     mutate(equal = as.numeric(motorway==predicted))
   
   values_df_test2 %>% 
-    dplyr::rename(Type=motorway) %>% 
-    group_by(Type) %>%
-    summarise(Value = sum(equal)/n()) %>% 
-    mutate(Type=ifelse(Type==1,"motorway_accuracy","none_motorway_accuracy"))
+    predicted()
 }) %>% 
   do.call(rbind,.)
 
@@ -265,6 +271,7 @@ write.csv(generated_rf,"output/one_scene_model_eval/randomforest.csv",row.names 
 
 ```{r xgboost,eval=FALSE}
 generated_xgb <- lapply(random_number,function(x) {
+  
   train_test_list <- train_and_test_data(seed = x,
                                          df = values_df,
                                          trainsize = 0.8,
@@ -306,10 +313,7 @@ generated_xgb <- lapply(random_number,function(x) {
   
   
   values_df_test2 %>% 
-    dplyr::rename(Type=motorway) %>% 
-    group_by(Type) %>%
-    summarise(Value = sum(equal)/n()) %>% 
-    mutate(Type=ifelse(Type==1,"motorway_accuracy","none_motorway_accuracy"))
+    predicted()
 }) %>% 
   do.call(rbind,.)
 ```
@@ -319,86 +323,78 @@ write.csv(generated_xgb,"output/one_scene_model_eval/xgboost.csv",row.names = FA
 
 ```
 
-## Keras
+## Neural Network
 
 ```{r keras,eval=FALSE}
 generated_keras <- lapply(random_number,function(x) {
-train_test_list <- train_and_test_data(seed = x,
-                                       df = values_df,
-                                       trainsize = 0.8,
-                                       replace_motorway = TRUE,
-                                       sample_size = 2e4,
-                                       sample_test = 1e4)
-values_df_model <- train_test_list$train
-values_df_test <- train_test_list$test
-
-
-
-model <- keras_model_sequential()  
-model %>% 
-  layer_dense(units = 256, activation = 'elu',
-              input_shape = c(6),kernel_regularizer = regularizer_l2(0.001)) %>%
-  layer_dense(units = 128, activation = 'elu',
-              input_shape = c(6),kernel_regularizer = regularizer_l2(0.001)) %>%
   
-  layer_dense(units = 64, activation = 'elu',
-              input_shape = c(6),kernel_regularizer = regularizer_l2(0.0001)) %>%
-  layer_dense(units = 32, activation = 'elu',
-              input_shape = c(6),kernel_regularizer = regularizer_l2(0.0001)) %>%
-  layer_dense(units = 16,activation = 'elu',
-              input_shape = c(6),kernel_regularizer = regularizer_l2(0.0001)) %>%
-  layer_dense(units = 8, activation = 'elu',
-              kernel_regularizer = regularizer_l2(0.0001)) %>% 
-  layer_dense(units = 4, activation = 'elu',
-              kernel_regularizer = regularizer_l2(0.0001)) %>% 
-  layer_dense(units = 3, activation = 'elu',
-              kernel_regularizer = regularizer_l2(0.0001)) %>% 
-  layer_dense(units = 2, activation = 'sigmoid')
-
-
-
-
-model %>% 
-  compile(
-    loss = 'binary_crossentropy',
-    #loss = 'categorical_crossentropy',
-    # optimizer= 'rmsprop',
-    optimizer = 'adam',
-    metrics = c('accuracy'))
-
-k_set_value(model$optimizer$lr, 0.00001)
-k_set_value(model$optimizer$decay, 0.00001/100)
-
-
-history <- model %>%
-  fit(
-    x = values_df_model %>% 
-      dplyr::select(paste0("V",1:6)) %>% 
-      apply(2,as.numeric),
-    y = values_df_model %>% 
-      dplyr::select(motorway) %>% 
-      apply(2,as.numeric)%>% 
-      to_categorical(),
-    epochs = 60, batch_size = 30, 
-    validation_split = 0.1)
-
-predicted <- model %>% 
-  predict(values_df_test %>% 
-            dplyr::select(paste0("V",1:6)) %>%
-            apply(2,as.numeric)) 
-values_df_test$predicted <- predicted[,2]  
-
-
-values_df_test2 <- values_df_test %>% 
-  mutate(predicted_binary = as.numeric(predicted>0.5),
-         equal = as.numeric(motorway==predicted_binary))
-
-
-values_df_test2 %>% 
-  dplyr::rename(Type=motorway) %>% 
-  group_by(Type) %>%
-  summarise(Value = sum(equal)/n()) %>% 
-  mutate(Type=ifelse(Type==1,"motorway_accuracy","none_motorway_accuracy"))
+  train_test_list <- train_and_test_data(seed = x,
+                                         df = values_df,
+                                         trainsize = 0.8,
+                                         replace_motorway = TRUE,
+                                         sample_size = 2e4,
+                                         sample_test = 1e4)
+  
+  values_df_model <- train_test_list$train
+  values_df_test <- train_test_list$test
+  
+  model <- keras_model_sequential()  
+  model %>% 
+    layer_dense(units = 256, activation = 'elu',
+                input_shape = c(6),kernel_regularizer = regularizer_l2(0.001)) %>%
+    layer_dense(units = 128, activation = 'elu',
+                input_shape = c(6),kernel_regularizer = regularizer_l2(0.001)) %>%
+    
+    layer_dense(units = 64, activation = 'elu',
+                input_shape = c(6),kernel_regularizer = regularizer_l2(0.0001)) %>%
+    layer_dense(units = 32, activation = 'elu',
+                input_shape = c(6),kernel_regularizer = regularizer_l2(0.0001)) %>%
+    layer_dense(units = 16,activation = 'elu',
+                input_shape = c(6),kernel_regularizer = regularizer_l2(0.0001)) %>%
+    layer_dense(units = 8, activation = 'elu',
+                kernel_regularizer = regularizer_l2(0.0001)) %>% 
+    layer_dense(units = 4, activation = 'elu',
+                kernel_regularizer = regularizer_l2(0.0001)) %>% 
+    layer_dense(units = 3, activation = 'elu',
+                kernel_regularizer = regularizer_l2(0.0001)) %>% 
+    layer_dense(units = 2, activation = 'sigmoid')
+  
+  model %>% 
+    compile(
+      loss = 'binary_crossentropy',
+      optimizer = 'adam',
+      metrics = c('accuracy'))
+  
+  k_set_value(model$optimizer$lr, 0.00001)
+  k_set_value(model$optimizer$decay, 0.00001/100)
+  
+  
+  history <- model %>%
+    fit(
+      x = values_df_model %>% 
+        dplyr::select(paste0("V",1:6)) %>% 
+        apply(2,as.numeric),
+      y = values_df_model %>% 
+        dplyr::select(motorway) %>% 
+        apply(2,as.numeric)%>% 
+        to_categorical(),
+      epochs = 60, batch_size = 30, 
+      validation_split = 0.1)
+  
+  predicted <- model %>% 
+    predict(values_df_test %>% 
+              dplyr::select(paste0("V",1:6)) %>%
+              apply(2,as.numeric)) 
+  values_df_test$predicted <- predicted[,2]  
+  
+  
+  values_df_test2 <- values_df_test %>% 
+    mutate(predicted_binary = as.numeric(predicted>0.5),
+           equal = as.numeric(motorway==predicted_binary))
+  
+  
+  values_df_test2 %>% 
+    predicted()
 }) %>% 
   do.call(rbind,.)
 ```
@@ -409,22 +405,247 @@ write.csv(generated_keras,"output/one_scene_model_eval/keras.csv",row.names = FA
 
 ```
 
-## Evaluation
+## Convolutional Neural Network
 
-```{r evalmodelsfor1scene}
-list.files("output/one_scene_model_eval/",full.names=TRUE) %>% 
-  lapply(function(x) {
-    dat <- read.csv(x)
-    dat$Estimator <- x %>% 
-      strsplit("/") %>% 
-      lapply(`[`,3) %>% 
-      unlist %>% 
-      gsub(".csv","",.)
-    dat
+```{r prepforcnn,eval=FALSE}
+
+listed_raster <- list.files("E:/landsatscene/LT051940232011072701T1-SC20180926185810/",pattern="band[0-9].tif$",full.names = TRUE)
+
+norm_mean <- function(x) {
+  (x-mean(x,na.rm=TRUE))/(max(x,na.rm=TRUE)-min(x,na.rm=TRUE))
+}
+
+ra1_path <- listed_raster[1]
+
+brick <- lapply(listed_raster,function(ra1_path) {
+  # ra1 <- raster(ra1_path)
+  ve1 <- velox(ra1_path)
+  
+  ve1$crop(mv_st %>% 
+             extent %>% 
+             as.vector())
+  
+  ra1_cropped <- ve1$as.RasterLayer()
+  
+  ra1_cropped_masked <- mask(ra1_cropped,mv_raster)
+  
+  ra1_cropped_masked_values <- getValues(ra1_cropped_masked)
+  
+  cloudless_values <- ra1_cropped_masked_values *cloud_identification_values_3
+  
+  ra1_cropped_masked_cloudless_values <-
+    ifelse_cpp(cloudless_values,0,0,NA,ra1_cropped_masked_values)
+    
+  
+  ra1_cropped_masked_cloudless_values_norm <- norm_mean(ra1_cropped_masked_cloudless_values)
+  
+  setValues(ra1_cropped_masked,ra1_cropped_masked_cloudless_values_norm)
+    
+}) %>% 
+  brick
+
+# aggregate
+# to polygon
+# extract from each band
+# return as array in list
+
+# aggregate raster to get mask to crop -- faster with velox
+b1_velox <- velox(brick[[1]])
+b1_agg <- b1_velox$copy()
+b1_agg$aggregate(factor=c(5,5),aggtype="sum")
+agg_raster <- b1_agg$as.RasterLayer()
+agg_raster %>% getValues() %>% is.na %>% which %>% length
+agg_raster %>% getValues() %>% length
+# transform mask to spatialpolygon
+
+b1_agg_poly <- agg_raster %>% 
+  as("SpatialPolygons")
+
+# again, do it in velox because its way faster
+brick_velox <- velox(brick)
+
+
+array_of_images <- laply(1:length(b1_agg_poly),function(y) {
+  if (y%%1000==0) message(y)
+  b1 <- brick_velox$copy()
+  b1$crop(b1_agg_poly[y,])
+  laply(1:6,function(x) b1$as.matrix(x))
+})
+
+# remove with NA
+del <- lapply(1:dim(array_of_images)[1],function(x) array_of_images[x,,,] %>% 
+                is.na %>% 
+                any) %>% 
+  unlist %>%
+  which
+array_of_images <- array_of_images[-del,,,]
+# for Yd
+motorways_raster01 <- setValues(motorways_raster,ifelse(is.na(getValues(motorways_raster)),0,1))
+motorways_velox <- velox(motorways_raster01)
+motorways_velox$aggregate(factor=c(5,5),aggtype="max")
+
+Y <- motorways_velox$extract(b1_agg_poly,fun=max)
+
+Y <- Y[-del,]
+
+Y_cat <- to_categorical(Y %>% as.vector())
+```
+
+
+```{r cnn1,eval=FALSE}
+pos <- which(Y==1)
+
+generated_cnn <- lapply(random_number,function(x) {
+  
+  set.seed(x)
+  pos_train <- sample(pos,round(length(pos)*0.8)) %>% rep(8)
+  pos_test <- pos[!pos%in%pos_train] %>% rep(8)
+  
+  neg <- which(Y==0)
+  neg_train <- sample(neg,length(pos_train))
+  neg_test <- sample(neg[!neg%in%neg_train],length(pos_test))
+  
+    y_train <- Y_cat[c(pos_train,neg_train) %>% 
+                     sort,]
+  # y_val <- Y_cat[c(pos_val,neg_val) %>% 
+                   # sort,]
+  y_test <- Y_cat[c(pos_test,neg_test) %>% 
+                    sort,]
+  x_train <- array_of_images[c(pos_train,neg_train) %>% 
+                               sort,,,]
+  # x_val <- array_of_images[c(pos_val,neg_val) %>% 
+                             # sort,,,]
+  x_test <- array_of_images[c(pos_test,neg_test) %>% 
+                              sort,,,]  
+  
+  model<-keras_model_sequential()
+  
+  model %>%  
+    layer_conv_2d(filters=5,kernel_size=5,data_format="channels_first", 
+                  padding="same",input_shape=c(6,5,5),activation = "elu"
+                  ,kernel_regularizer = regularizer_l2(0.01)
+    ) %>%  
+    layer_conv_2d(filter=10,kernel_size=5,activation="elu",padding="same",
+                  kernel_regularizer = regularizer_l2(0.0001))  %>%
+    layer_max_pooling_2d(pool_size=c(3,3)) %>%  
+    layer_flatten() %>%  
+    layer_dense(units = 64,activation = "elu"
+                ,kernel_regularizer = regularizer_l2(0.0001)
+    ) %>%  
+    layer_dense(units = 32,activation = "elu"
+                ,kernel_regularizer = regularizer_l2(0.0001)
+    ) %>%  
+    layer_dense(units = 16,activation = "elu"
+                ,kernel_regularizer = regularizer_l2(0.0001)
+    ) %>%  
+    layer_dense(units = 8,activation = "elu"
+                ,kernel_regularizer = regularizer_l2(0.0001)
+    ) %>%  
+    
+    layer_dense(units = 4,activation = "elu"
+                ,kernel_regularizer = regularizer_l2(0.0001)
+    ) %>%  
+    layer_dense(units = 3,activation = "elu"
+                ,kernel_regularizer = regularizer_l2(0.0001)
+    ) %>%  
+    layer_dense(2,activation = "sigmoid") 
+  
+  
+  model %>%
+    compile(loss="categorical_crossentropy",
+            optimizer=optimizer_rmsprop(lr = 0.0001,decay = 1e-8),
+            # optimizer_adam( lr= 0.0001 , decay = 1e-8 ),
+            metrics = "accuracy")
+  
+  
+  
+  model %>%
+    fit( x_train,y_train ,batch_size=32,
+                 epochs=60,#validation_data = list(x_val, y_val),
+                 shuffle=TRUE)
+  
+  
+  predicted <- model %>% 
+    predict(x_test) 
+  
+  
+  pred <- data.frame(orig=y_test[,2],pred=ifelse(predicted[,2]>0.5,1,0)) %>% 
+    mutate(res=apply(.,1,function(x) {
+      if (x[1]==x[2]) return(1)
+      0
+    })) %>% 
+    group_by(orig,res) %>% 
+    dplyr::summarize(n=dplyr::n())
+  
+  data.frame(Type=c("none_motorway_accuracy","motorway_accuracy"),
+             Value = c(pred$n[2]/sum(pred$n[1:2]),
+                       pred$n[4]/sum(pred$n[3:4])))
+  
+  
+}) %>% 
+  do.call(rbind,.)
+```
+
+```{r cnn_save,eval=FALSE,echo=FALSE}
+write.csv(generated_cnn,"output/one_scene_model_eval/cnn.csv",row.names = FALSE)
+
+```
+
+
+
+
+
+## Evaluation
+```{r mergesims,eval=FALSE}
+all_simulations <- list(OLS=generated,RandomForest=generated_rf,XGBoost=generated_xgb,Keras=generated_keras,CNN=generated_cnn)
+```
+
+```{r reloadsims,echo=FALSE}
+methods <- c("OLS","RandomForest","XGBoost","Keras","CNN")
+all_simulations <- lapply(methods,function(x) {
+  list.files("output/one_scene_model_eval/",full.names=TRUE,pattern=x %>% 
+               tolower) %>% 
+     read.csv() %>% 
+      mutate(Type= ifelse(Type=="motorway_accuracy","Motorway","None Motorway")) 
+})
+
+
+
+names(all_simulations) <- methods
+```
+
+Before evaluating, I remove one prediction of the neural network that predicts that all pixels are none road pixels.
+```{r allsimulationsdf}
+all_simulations_df <- names(all_simulations) %>% 
+  lapply(function(name) {
+    dat <- all_simulations[[name]]
+    dat$Method <- name
+    dat %>% 
+      filter(!is.na(Value))
   }) %>% 
   do.call(rbind,.) %>% 
+  filter(Value>0&Value<1)
+
+nrow(all_simulations_df)/2
+```
+
+
+Figure \@ref(fig:evalmodelsfor1scene) shows the accuracy for four different methods. All approaches yield similar results with the average accuracy for motorway prediction lying between 68% and 90%. The accuracy of predicting the none motorway pixels is slightly higher and the difference between the methods is more obvious.  
+In general OLS performs less well than the other three and the neural network has the greates span and even has some predictions below 70% for motorway. Random Forest and XGBoost yield the best results, especially when it comes to the "none motorway" prediction were both are consistently above 90%.
+
+
+```{r evalmodelsfor1scene,fig.align="center",fig.cap="Comparison between OLS, Random Forest, XGBoost, and neural network (Keras)."}
+all_simulations_df %>% 
+  group_by(Method,Type) %>% 
+  summarise(mean=round(mean(Value),4)*100) %>% 
+spread(Type,mean) %>% 
+     kable(caption = "Accuracy for motorway and none motorway pixels for different methods in percent.")
+
+all_simulations_df %>% 
   ggplot() +
-  geom_violin(aes(x=Type,y=Value,fill=Estimator))
+  geom_violin(aes(x=Type,y=Value,fill=as_factor(Method))) +
+  ylab("Accuracy") +
+  guides(fill=guide_legend(title="Methods"))
 
 ```
 
