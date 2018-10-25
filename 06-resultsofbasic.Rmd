@@ -1,0 +1,55 @@
+# Evaluation of Basic Models
+```{r mergesims,eval=FALSE}
+all_simulations <- list(OLS=generated,logit=generated_glm,
+                      RandomForest=generated_rf,XGBoost=generated_xgb,
+                      Keras=generated_keras,CNN=generated_cnn)
+```
+
+```{r reloadsims,echo=FALSE}
+methods <- c("OLS","logit","RandomForest","XGBoost","Keras","CNN")
+all_simulations <- lapply(methods,function(x) {
+  list.files("output/one_scene_model_eval/",full.names=TRUE,pattern=x %>% 
+               tolower) %>% 
+     read.csv() %>% 
+      mutate(Type= ifelse(Type=="motorway_accuracy","Motorway","None Motorway")) 
+})
+
+
+
+names(all_simulations) <- methods
+```
+
+Before evaluating, I remove one prediction of the neural network that predicts that all pixels are none road pixels.
+```{r allsimulationsdf}
+all_simulations_df <- names(all_simulations) %>% 
+  lapply(function(name) {
+    dat <- all_simulations[[name]]
+    dat$Method <- name
+    dat %>% 
+      filter(!is.na(Value))
+  }) %>% 
+  do.call(rbind,.) %>% 
+  filter(Value>0&Value<1)
+
+nrow(all_simulations_df)/2
+```
+
+
+Figure \@ref(fig:evalmodelsfor1scene) shows the accuracy for six different methods. All approaches yield similar results with the average accuracy for motorway prediction lying between 68% and 90%. The accuracy of predicting the none motorway pixels is slightly higher and the difference between the methods is more obvious.  
+In general OLS performs less well than the other three and the neural network has the greates span and even has some predictions below 70% for motorway. Random Forest and XGBoost yield the best results, especially when it comes to the "none motorway" prediction were both are consistently above 90%.
+
+
+```{r evalmodelsfor1scene,fig.align="center",fig.cap="Comparison between OLS, Random Forest, XGBoost, and neural network (Keras)."}
+all_simulations_df %>% 
+  group_by(Method,Type) %>% 
+  dplyr::summarise(mean=round(mean(Value),4)*100) %>% 
+  spread(Type,mean) %>% 
+  kable(caption = "Accuracy for motorway and none motorway pixels for different methods in percent.")
+
+all_simulations_df %>% 
+  ggplot() +
+  geom_violin(aes(x=Type,y=Value,fill=as_factor(Method))) +
+  ylab("Accuracy") +
+  guides(fill=guide_legend(title="Methods"))
+
+```

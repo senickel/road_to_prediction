@@ -25,15 +25,15 @@
 <meta name="author" content="Sebastian Nickel">
 
 
-<meta name="date" content="2018-10-06">
+<meta name="date" content="2018-10-25">
 
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="black">
   
   
-<link rel="prev" href="selecting-landsat-images.html">
-<link rel="next" href="open-questionsissues.html">
+<link rel="prev" href="preparation-for-a-basic-analysis.html">
+<link rel="next" href="evaluation-of-basic-models.html">
 <script src="libs/jquery-2.2.3/jquery.min.js"></script>
 <link href="libs/gitbook-2.6.7/css/style.css" rel="stylesheet" />
 <link href="libs/gitbook-2.6.7/css/plugin-bookdown.css" rel="stylesheet" />
@@ -131,8 +131,17 @@ code > span.in { color: #8f5902; font-weight: bold; font-style: italic; } /* Inf
 <li class="chapter" data-level="3.2" data-path="selecting-landsat-images.html"><a href="selecting-landsat-images.html#reducing-the-scenes"><i class="fa fa-check"></i><b>3.2</b> Reducing the scenes</a></li>
 <li class="chapter" data-level="3.3" data-path="selecting-landsat-images.html"><a href="selecting-landsat-images.html#bulk-download-scenes"><i class="fa fa-check"></i><b>3.3</b> Bulk download scenes</a></li>
 </ul></li>
-<li class="chapter" data-level="4" data-path="basic-analysis.html"><a href="basic-analysis.html"><i class="fa fa-check"></i><b>4</b> Basic Analysis</a></li>
-<li class="chapter" data-level="5" data-path="open-questionsissues.html"><a href="open-questionsissues.html"><i class="fa fa-check"></i><b>5</b> Open Questions/Issues</a></li>
+<li class="chapter" data-level="4" data-path="preparation-for-a-basic-analysis.html"><a href="preparation-for-a-basic-analysis.html"><i class="fa fa-check"></i><b>4</b> Preparation for a basic analysis</a></li>
+<li class="chapter" data-level="5" data-path="basic-analysis.html"><a href="basic-analysis.html"><i class="fa fa-check"></i><b>5</b> Basic Analysis</a><ul>
+<li class="chapter" data-level="5.1" data-path="basic-analysis.html"><a href="basic-analysis.html#ordinary-least-squares"><i class="fa fa-check"></i><b>5.1</b> Ordinary Least Squares</a></li>
+<li class="chapter" data-level="5.2" data-path="basic-analysis.html"><a href="basic-analysis.html#logit"><i class="fa fa-check"></i><b>5.2</b> Logit</a></li>
+<li class="chapter" data-level="5.3" data-path="basic-analysis.html"><a href="basic-analysis.html#random-forest"><i class="fa fa-check"></i><b>5.3</b> Random Forest</a></li>
+<li class="chapter" data-level="5.4" data-path="basic-analysis.html"><a href="basic-analysis.html#xgboost"><i class="fa fa-check"></i><b>5.4</b> XGBoost</a></li>
+<li class="chapter" data-level="5.5" data-path="basic-analysis.html"><a href="basic-analysis.html#neural-network"><i class="fa fa-check"></i><b>5.5</b> Neural Network</a></li>
+<li class="chapter" data-level="5.6" data-path="basic-analysis.html"><a href="basic-analysis.html#convolutional-neural-network"><i class="fa fa-check"></i><b>5.6</b> Convolutional Neural Network</a></li>
+</ul></li>
+<li class="chapter" data-level="6" data-path="evaluation-of-basic-models.html"><a href="evaluation-of-basic-models.html"><i class="fa fa-check"></i><b>6</b> Evaluation of Basic Models</a></li>
+<li class="chapter" data-level="7" data-path="open-questionsissues.html"><a href="open-questionsissues.html"><i class="fa fa-check"></i><b>7</b> Open Questions/Issues</a></li>
 </ul>
 
       </nav>
@@ -153,117 +162,16 @@ code > span.in { color: #8f5902; font-weight: bold; font-style: italic; } /* Inf
 <!--  <center><img src="logo/normal_3.png" width="300px"></center> -->
 <br><br><br><br>
 <div id="basic-analysis" class="section level1">
-<h1><span class="header-section-number">Chapter 4</span> Basic Analysis</h1>
-<p>First, I will look at one satellite picture to show the general procedure.</p>
-<p>According to the Landsat <a href="https://landsat.usgs.gov/landsat-surface-reflectance-quality-assessment">website</a> the pixel_qa band has a more accurate prediction for identifying clouds, cloud shadows, water, and snow.</p>
-<div class="sourceCode"><pre class="sourceCode r"><code class="sourceCode r">Rcpp<span class="op">::</span><span class="kw">sourceCpp</span>(<span class="st">&quot;cppsource/table_cpp.cpp&quot;</span>)
-
-cloud_identification &lt;-<span class="st"> </span><span class="kw">raster</span>(<span class="st">&quot;E:/landsatscene/LT051940232011072701T1-SC20180926185810/LT05_L1TP_194023_20110727_20180312_01_T1_pixel_qa.tif&quot;</span>) 
-cloud_identification_cropped &lt;-<span class="st"> </span><span class="kw">crop</span>(cloud_identification,<span class="kw">st_transform</span>(mv,<span class="dt">crs=</span><span class="kw">proj4string</span>(cloud_identification)))
-
-mv_raster &lt;-<span class="st"> </span>fasterize<span class="op">::</span><span class="kw">fasterize</span>(<span class="kw">st_transform</span>(mv,<span class="dt">crs=</span><span class="kw">proj4string</span>(cloud_identification)),cloud_identification_cropped)
-cloud_identification_masked &lt;-<span class="st"> </span><span class="kw">mask</span>(cloud_identification_cropped,mv_raster)
-
-cloud_identification_values &lt;-<span class="st"> </span><span class="kw">getValues</span>(cloud_identification_masked)
-none_clear_values &lt;-<span class="st"> </span><span class="kw">c</span>(<span class="dv">96</span>, <span class="dv">112</span>, <span class="dv">160</span>, <span class="dv">176</span>, <span class="dv">224</span>, <span class="dv">68</span>, <span class="dv">72</span>, <span class="dv">80</span>, <span class="dv">96</span>, <span class="dv">112</span>, <span class="dv">132</span>, <span class="dv">136</span>, <span class="dv">144</span>, <span class="dv">160</span>, <span class="dv">176</span>,<span class="dv">224</span>,<span class="dv">72</span>, <span class="dv">136</span>,<span class="dv">68</span>, <span class="dv">132</span>,<span class="dv">80</span>, <span class="dv">112</span>, <span class="dv">144</span>, <span class="dv">176</span>)
-
-cloud_identification_values_<span class="dv">2</span> &lt;-<span class="st"> </span>
-<span class="st">  </span><span class="kw">ifelse</span>(cloud_identification_values <span class="op">%in%</span><span class="st"> </span>none_clear_values,<span class="dv">0</span>,
-         <span class="kw">ifelse</span>(<span class="kw">is.na</span>(cloud_identification_values),<span class="ot">NA</span>,<span class="dv">1</span>))
-
-cloud_identification_<span class="dv">2</span> &lt;-<span class="st"> </span><span class="kw">setValues</span>(cloud_identification_masked,cloud_identification_values_<span class="dv">2</span>) 
-
-<span class="kw">cbind</span>(<span class="kw">table_cpp</span>(cloud_identification_values_<span class="dv">2</span>[<span class="op">!</span><span class="kw">is.na</span>(cloud_identification_values_<span class="dv">2</span>)]) <span class="op">%&gt;%</span><span class="st"> </span>
-<span class="st">  </span><span class="kw">do.call</span>(rbind,.),<span class="kw">c</span>(<span class="kw">sum</span>(<span class="kw">is.na</span>(cloud_identification_values_<span class="dv">2</span>)),<span class="ot">NA</span>)) <span class="op">%&gt;%</span><span class="st"> </span>
-<span class="st">  </span>t <span class="op">%&gt;%</span><span class="st"> </span>
-<span class="st">  </span>as.data.frame <span class="op">%&gt;%</span><span class="st"> </span>
-<span class="st">  </span><span class="kw">mutate</span>(<span class="dt">lengths =</span> <span class="dv">100</span><span class="op">*</span>lengths<span class="op">/</span><span class="kw">sum</span>(lengths)) <span class="op">%&gt;%</span><span class="st"> </span>
-<span class="st">  </span><span class="kw">rename</span>(<span class="dt">Percentage =</span> lengths,
-         <span class="dt">Values =</span> values) <span class="op">%&gt;%</span><span class="st"> </span>
-<span class="st">  </span><span class="kw">kable</span>(<span class="dt">caption=</span><span class="st">&quot;Coverage for different values. `NA` are the rims of the picture, 0 is cloud covered, and 1 is free sight.&quot;</span>)</code></pre></div>
-<table>
-<caption><span id="tab:pixelqatransform">Table 4.1: </span>Coverage for different values. <code>NA</code> are the rims of the picture, 0 is cloud covered, and 1 is free sight.</caption>
-<thead>
-<tr class="header">
-<th align="right">Percentage</th>
-<th align="right">Values</th>
-</tr>
-</thead>
-<tbody>
-<tr class="odd">
-<td align="right">28.96906</td>
-<td align="right">0</td>
-</tr>
-<tr class="even">
-<td align="right">28.16872</td>
-<td align="right">1</td>
-</tr>
-<tr class="odd">
-<td align="right">42.86222</td>
-<td align="right">NA</td>
-</tr>
-</tbody>
-</table>
-<div class="sourceCode"><pre class="sourceCode r"><code class="sourceCode r">motorways_sf &lt;-<span class="st"> </span><span class="kw">spTransform</span>(motorways,<span class="kw">CRS</span>(<span class="kw">proj4string</span>(cloud_identification_<span class="dv">2</span>))) <span class="op">%&gt;%</span><span class="st"> </span>
-<span class="st">  </span><span class="kw">gBuffer</span>(<span class="dt">width =</span> <span class="dv">1</span>) <span class="op">%&gt;%</span><span class="st"> </span>
-<span class="st">  </span><span class="kw">st_as_sf</span>()
-
-motorways_raster &lt;-<span class="st"> </span>fasterize<span class="op">::</span><span class="kw">fasterize</span>(motorways_sf,
-                     cloud_identification_<span class="dv">2</span>)
-
-covered_by_road &lt;-<span class="st"> </span><span class="kw">mask</span>(cloud_identification_<span class="dv">2</span>,motorways_raster) <span class="op">%&gt;%</span><span class="st"> </span>
-<span class="st">  </span><span class="kw">getValues</span>() <span class="op">%&gt;%</span><span class="st"> </span>
-<span class="st">  </span><span class="kw">is.na</span>() <span class="op">%&gt;%</span><span class="st"> </span>
-<span class="st">  `</span><span class="dt">!</span><span class="st">`</span> <span class="op">%&gt;%</span><span class="st"> </span>
-<span class="st">  </span><span class="kw">which</span>()
-
-cloud_identification_values_<span class="dv">3</span> &lt;-<span class="st"> </span><span class="kw">ifelse</span>(<span class="kw">is.na</span>(cloud_identification_values_<span class="dv">2</span>),<span class="dv">0</span>,cloud_identification_values_<span class="dv">2</span>)</code></pre></div>
-<div class="sourceCode"><pre class="sourceCode r"><code class="sourceCode r">listed_raster &lt;-<span class="st"> </span><span class="kw">list.files</span>(<span class="st">&quot;E:/landsatscene/LT051940232011072701T1-SC20180926185810/&quot;</span>,<span class="dt">pattern=</span><span class="st">&quot;band[0-9].tif$&quot;</span>,<span class="dt">full.names =</span> <span class="ot">TRUE</span>)
-
-values_df &lt;-<span class="st"> </span><span class="kw">lapply</span>(listed_raster,<span class="cf">function</span>(ra1_path) {
-  
-  ra1 &lt;-<span class="st"> </span><span class="kw">raster</span>(ra1_path)
-  
-  ra1_cropped &lt;-<span class="st"> </span><span class="kw">crop</span>(ra1,<span class="kw">st_transform</span>(mv,<span class="dt">crs=</span><span class="kw">proj4string</span>(ra1)))
-  
-  ra1_cropped_masked &lt;-<span class="st"> </span><span class="kw">mask</span>(ra1_cropped,mv_raster)
-  
-  ra1_cropped_masked_cloudless &lt;-<span class="st"> </span><span class="kw">setValues</span>(ra1_cropped_masked,<span class="kw">ifelse</span>(<span class="kw">getValues</span>(ra1_cropped_masked)<span class="op">*</span>cloud_identification_values_<span class="dv">3</span><span class="op">==</span><span class="dv">0</span>,<span class="ot">NA</span>,<span class="kw">getValues</span>(ra1_cropped_masked)))
-  
-  <span class="kw">getValues</span>(ra1_cropped_masked_cloudless)
-  
-}) <span class="op">%&gt;%</span><span class="st"> </span>
-<span class="st">  </span><span class="kw">do.call</span>(cbind,.) <span class="op">%&gt;%</span><span class="st"> </span>
-<span class="st">  </span><span class="kw">as.data.frame</span>()
-
-values_df<span class="op">$</span>motorway &lt;-<span class="st"> </span><span class="dv">0</span>
-values_df<span class="op">$</span>motorway[covered_by_road] &lt;-<span class="st"> </span><span class="dv">1</span>
-
-identify_na &lt;-<span class="st"> </span><span class="kw">sapply</span>(<span class="kw">paste0</span>(<span class="st">&quot;V&quot;</span>,<span class="dv">1</span><span class="op">:</span><span class="dv">6</span>),<span class="cf">function</span>(x) {
-   values_df[,x] <span class="op">%&gt;%</span><span class="st"> </span>
-<span class="st">  </span><span class="kw">is.na</span>() <span class="op">%&gt;%</span><span class="st"> </span>
-<span class="st">  </span><span class="kw">which</span>()
-}) <span class="op">%&gt;%</span>
-<span class="st">  </span><span class="kw">unlist</span>() <span class="op">%&gt;%</span><span class="st"> </span>
-<span class="st">  </span><span class="kw">unique</span>()
-
-<span class="cf">if</span> (<span class="kw">length</span>(identify_na) <span class="op">&gt;</span><span class="st"> </span><span class="dv">0</span>) {
-  values_df &lt;-<span class="st"> </span>values_df <span class="op">%&gt;%</span><span class="st"> </span>
-<span class="st">    </span>dplyr<span class="op">::</span><span class="kw">slice</span>(<span class="op">-</span>identify_na)
-}
-
-norm_mean &lt;-<span class="st"> </span><span class="cf">function</span>(x) {
-  (x<span class="op">-</span><span class="kw">mean</span>(x))<span class="op">/</span>(<span class="kw">max</span>(x)<span class="op">-</span><span class="kw">min</span>(x))
-}
-
-values_df[,<span class="kw">paste0</span>(<span class="st">&quot;V&quot;</span>,<span class="dv">1</span><span class="op">:</span><span class="dv">6</span>)] &lt;-<span class="st"> </span>values_df[,<span class="kw">paste0</span>(<span class="st">&quot;V&quot;</span>,<span class="dv">1</span><span class="op">:</span><span class="dv">6</span>)] <span class="op">%&gt;%</span><span class="st"> </span>
-<span class="st">  </span><span class="kw">apply</span>(<span class="dv">2</span>,norm_mean)</code></pre></div>
+<h1><span class="header-section-number">Chapter 5</span> Basic Analysis</h1>
+<p>I am using OLS, Random Forest, XGBoost, a neural network, and a convolutional neural network to predict motorway pixel. The train/test split is for all methods 80/20 and I run each method 100 times to get to different splits. The results are presented in the next chapter.</p>
+<p>The <code>train_and_test_data</code> function is creating a train and test set. If <code>replace_motorway</code> is set to <code>TRUE</code> the same amount of motorway pixel will be sampled for the training data as of no motorway pixel. This way, the distribution will</p>
 <div class="sourceCode"><pre class="sourceCode r"><code class="sourceCode r">train_and_test_data &lt;-<span class="st"> </span><span class="cf">function</span>(seed,df,<span class="dt">trainsize=</span><span class="fl">0.8</span>,
                                 <span class="dt">replace_motorway=</span><span class="ot">TRUE</span>,
                                 <span class="dt">sample_size=</span><span class="fl">1e4</span>,
-                                <span class="dt">sample_test=</span><span class="fl">1e4</span>) {
+                                <span class="dt">sample_test=</span><span class="fl">1e4</span>,
+                                <span class="dt">factorize_dependent=</span><span class="ot">FALSE</span>) {
   <span class="kw">set.seed</span>(seed)
-  df<span class="op">$</span>motorway &lt;-<span class="st"> </span><span class="kw">as.factor</span>(df<span class="op">$</span>motorway)
+  <span class="cf">if</span> (factorize_dependent) df<span class="op">$</span>motorway &lt;-<span class="st"> </span><span class="kw">as.factor</span>(df<span class="op">$</span>motorway)
   motorway_pixel &lt;-<span class="st"> </span><span class="kw">which</span>(df<span class="op">$</span>motorway<span class="op">==</span><span class="dv">1</span>)
   no_motorway_pixel &lt;-<span class="st"> </span><span class="kw">which</span>(df<span class="op">$</span>motorway<span class="op">==</span><span class="dv">0</span>)
   
@@ -292,20 +200,30 @@ values_df[,<span class="kw">paste0</span>(<span class="st">&quot;V&quot;</span>,
   }
   
   subset &lt;-<span class="st"> </span><span class="kw">c</span>(selected_non_motorway,selected_motorway)
-  values_df_model &lt;-<span class="st"> </span>dplyr<span class="op">::</span><span class="kw">slice</span>(values_df,subset)
+  values_df_model &lt;-<span class="st"> </span>dplyr<span class="op">::</span><span class="kw">slice</span>(df,subset)
   
   <span class="co"># test</span>
   subset_test &lt;-<span class="st"> </span><span class="kw">c</span>(test_motorway_pixel,<span class="kw">sample</span>(test_no_motorway_pixel,
                                               sample_test))
-  values_df_test &lt;-<span class="st"> </span>dplyr<span class="op">::</span><span class="kw">slice</span>(values_df,subset_test)
+  values_df_test &lt;-<span class="st"> </span>dplyr<span class="op">::</span><span class="kw">slice</span>(df,subset_test)
   
   
   <span class="kw">list</span>(<span class="dt">train=</span>values_df_model,
        <span class="dt">test=</span>values_df_test)
+}
+predicted &lt;-<span class="st"> </span><span class="cf">function</span>(data) {
+    data <span class="op">%&gt;%</span><span class="st"> </span>
+<span class="st">    </span>dplyr<span class="op">::</span><span class="kw">rename</span>(<span class="dt">Type=</span>motorway) <span class="op">%&gt;%</span><span class="st"> </span>
+<span class="st">    </span><span class="kw">group_by</span>(Type) <span class="op">%&gt;%</span>
+<span class="st">    </span>dplyr<span class="op">::</span><span class="kw">summarise</span>(<span class="dt">Value =</span> <span class="kw">sum</span>(equal)<span class="op">/</span><span class="kw">n</span>()) <span class="op">%&gt;%</span><span class="st"> </span>
+<span class="st">    </span><span class="kw">mutate</span>(<span class="dt">Type=</span><span class="kw">ifelse</span>(Type<span class="op">==</span><span class="dv">1</span>,<span class="st">&quot;Motorway&quot;</span>,<span class="st">&quot;None Motorway&quot;</span>))
 }</code></pre></div>
 <div class="sourceCode"><pre class="sourceCode r"><code class="sourceCode r"><span class="kw">set.seed</span>(<span class="dv">15</span>)
 random_number &lt;-<span class="st"> </span><span class="kw">sample</span>(<span class="fl">1e5</span>,<span class="dv">100</span>)</code></pre></div>
+<div id="ordinary-least-squares" class="section level2">
+<h2><span class="header-section-number">5.1</span> Ordinary Least Squares</h2>
 <div class="sourceCode"><pre class="sourceCode r"><code class="sourceCode r">generated &lt;-<span class="st"> </span><span class="kw">lapply</span>(random_number,<span class="cf">function</span>(x) {
+  
   train_test_list &lt;-<span class="st"> </span><span class="kw">train_and_test_data</span>(<span class="dt">seed =</span> x,
                                          <span class="dt">df =</span> values_df,
                                          <span class="dt">trainsize =</span> <span class="fl">0.8</span>,
@@ -326,13 +244,41 @@ random_number &lt;-<span class="st"> </span><span class="kw">sample</span>(<span
   
   
   values_df_test <span class="op">%&gt;%</span><span class="st"> </span>
-<span class="st">    </span>dplyr<span class="op">::</span><span class="kw">rename</span>(<span class="dt">Type=</span>motorway) <span class="op">%&gt;%</span><span class="st"> </span>
-<span class="st">    </span><span class="kw">group_by</span>(Type) <span class="op">%&gt;%</span>
-<span class="st">    </span><span class="kw">summarise</span>(<span class="dt">Value =</span> <span class="kw">sum</span>(equal)<span class="op">/</span><span class="kw">n</span>()) <span class="op">%&gt;%</span><span class="st"> </span>
-<span class="st">    </span><span class="kw">mutate</span>(<span class="dt">Type=</span><span class="kw">ifelse</span>(Type<span class="op">==</span><span class="dv">1</span>,<span class="st">&quot;motorway_accuracy&quot;</span>,<span class="st">&quot;none_motorway_accuracy&quot;</span>))
+<span class="st">    </span><span class="kw">predicted</span>()
+    
+}) <span class="op">%&gt;%</span><span class="st"> </span>
+<span class="st">  </span><span class="kw">do.call</span>(rbind,.)</code></pre></div>
+</div>
+<div id="logit" class="section level2">
+<h2><span class="header-section-number">5.2</span> Logit</h2>
+<div class="sourceCode"><pre class="sourceCode r"><code class="sourceCode r">generated_glm &lt;-<span class="st"> </span><span class="kw">lapply</span>(random_number,<span class="cf">function</span>(x) {
+  train_test_list &lt;-<span class="st"> </span><span class="kw">train_and_test_data</span>(<span class="dt">seed =</span> x,
+                                         <span class="dt">df =</span> values_df,
+                                         <span class="dt">trainsize =</span> <span class="fl">0.8</span>,
+                                         <span class="dt">sample_size =</span> <span class="fl">1e4</span>,
+                                         <span class="dt">sample_test =</span> <span class="fl">1e4</span>)
+  values_df_model &lt;-<span class="st"> </span>train_test_list<span class="op">$</span>train
+  values_df_test &lt;-<span class="st"> </span>train_test_list<span class="op">$</span>test
+  
+  <span class="co"># model</span>
+  model &lt;-<span class="st"> </span><span class="kw">glm</span>(motorway<span class="op">~</span>V1<span class="op">+</span>V2<span class="op">+</span>V3<span class="op">+</span>V4<span class="op">+</span>V5<span class="op">+</span>V6,<span class="dt">data=</span>values_df_model,<span class="dt">family=</span>binomial) 
+  
+  <span class="co"># predict</span>
+  values_df_test<span class="op">$</span>predicted &lt;-<span class="st"> </span><span class="kw">predict</span>(model,values_df_test)
+  
+  values_df_test &lt;-<span class="st"> </span>values_df_test <span class="op">%&gt;%</span><span class="st"> </span>
+<span class="st">    </span><span class="kw">mutate</span>(<span class="dt">predicted_binary =</span> <span class="kw">as.numeric</span>(predicted<span class="op">&gt;</span><span class="fl">0.5</span>),
+           <span class="dt">equal =</span> <span class="kw">as.numeric</span>(motorway<span class="op">==</span>predicted_binary))
+  
+  
+  values_df_test <span class="op">%&gt;%</span><span class="st"> </span>
+<span class="st">    </span><span class="kw">predicted</span>()
   
 }) <span class="op">%&gt;%</span><span class="st"> </span>
 <span class="st">  </span><span class="kw">do.call</span>(rbind,.)</code></pre></div>
+</div>
+<div id="random-forest" class="section level2">
+<h2><span class="header-section-number">5.3</span> Random Forest</h2>
 <div class="sourceCode"><pre class="sourceCode r"><code class="sourceCode r">generated_rf &lt;-<span class="st"> </span><span class="kw">lapply</span>(random_number,<span class="cf">function</span>(x) {
   values_df<span class="op">$</span>motorway &lt;-<span class="st"> </span><span class="kw">as.factor</span>(values_df<span class="op">$</span>motorway)
   train_test_list &lt;-<span class="st"> </span><span class="kw">train_and_test_data</span>(<span class="dt">seed =</span> x,
@@ -359,13 +305,14 @@ random_number &lt;-<span class="st"> </span><span class="kw">sample</span>(<span
 <span class="st">    </span><span class="kw">mutate</span>(<span class="dt">equal =</span> <span class="kw">as.numeric</span>(motorway<span class="op">==</span>predicted))
   
   values_df_test2 <span class="op">%&gt;%</span><span class="st"> </span>
-<span class="st">    </span>dplyr<span class="op">::</span><span class="kw">rename</span>(<span class="dt">Type=</span>motorway) <span class="op">%&gt;%</span><span class="st"> </span>
-<span class="st">    </span><span class="kw">group_by</span>(Type) <span class="op">%&gt;%</span>
-<span class="st">    </span><span class="kw">summarise</span>(<span class="dt">Value =</span> <span class="kw">sum</span>(equal)<span class="op">/</span><span class="kw">n</span>()) <span class="op">%&gt;%</span><span class="st"> </span>
-<span class="st">    </span><span class="kw">mutate</span>(<span class="dt">Type=</span><span class="kw">ifelse</span>(Type<span class="op">==</span><span class="dv">1</span>,<span class="st">&quot;motorway_accuracy&quot;</span>,<span class="st">&quot;none_motorway_accuracy&quot;</span>))
+<span class="st">    </span><span class="kw">predicted</span>()
 }) <span class="op">%&gt;%</span><span class="st"> </span>
 <span class="st">  </span><span class="kw">do.call</span>(rbind,.)</code></pre></div>
+</div>
+<div id="xgboost" class="section level2">
+<h2><span class="header-section-number">5.4</span> XGBoost</h2>
 <div class="sourceCode"><pre class="sourceCode r"><code class="sourceCode r">generated_xgb &lt;-<span class="st"> </span><span class="kw">lapply</span>(random_number,<span class="cf">function</span>(x) {
+  
   train_test_list &lt;-<span class="st"> </span><span class="kw">train_and_test_data</span>(<span class="dt">seed =</span> x,
                                          <span class="dt">df =</span> values_df,
                                          <span class="dt">trainsize =</span> <span class="fl">0.8</span>,
@@ -407,114 +354,267 @@ random_number &lt;-<span class="st"> </span><span class="kw">sample</span>(<span
   
   
   values_df_test2 <span class="op">%&gt;%</span><span class="st"> </span>
-<span class="st">    </span>dplyr<span class="op">::</span><span class="kw">rename</span>(<span class="dt">Type=</span>motorway) <span class="op">%&gt;%</span><span class="st"> </span>
-<span class="st">    </span><span class="kw">group_by</span>(Type) <span class="op">%&gt;%</span>
-<span class="st">    </span><span class="kw">summarise</span>(<span class="dt">Value =</span> <span class="kw">sum</span>(equal)<span class="op">/</span><span class="kw">n</span>()) <span class="op">%&gt;%</span><span class="st"> </span>
-<span class="st">    </span><span class="kw">mutate</span>(<span class="dt">Type=</span><span class="kw">ifelse</span>(Type<span class="op">==</span><span class="dv">1</span>,<span class="st">&quot;motorway_accuracy&quot;</span>,<span class="st">&quot;none_motorway_accuracy&quot;</span>))
+<span class="st">    </span><span class="kw">predicted</span>()
 }) <span class="op">%&gt;%</span><span class="st"> </span>
 <span class="st">  </span><span class="kw">do.call</span>(rbind,.)</code></pre></div>
+</div>
+<div id="neural-network" class="section level2">
+<h2><span class="header-section-number">5.5</span> Neural Network</h2>
 <div class="sourceCode"><pre class="sourceCode r"><code class="sourceCode r">generated_keras &lt;-<span class="st"> </span><span class="kw">lapply</span>(random_number,<span class="cf">function</span>(x) {
-train_test_list &lt;-<span class="st"> </span><span class="kw">train_and_test_data</span>(<span class="dt">seed =</span> x,
-                                       <span class="dt">df =</span> values_df,
-                                       <span class="dt">trainsize =</span> <span class="fl">0.8</span>,
-                                       <span class="dt">replace_motorway =</span> <span class="ot">TRUE</span>,
-                                       <span class="dt">sample_size =</span> <span class="fl">2e4</span>,
-                                       <span class="dt">sample_test =</span> <span class="fl">1e4</span>)
-values_df_model &lt;-<span class="st"> </span>train_test_list<span class="op">$</span>train
-values_df_test &lt;-<span class="st"> </span>train_test_list<span class="op">$</span>test
-
-
-
-model &lt;-<span class="st"> </span><span class="kw">keras_model_sequential</span>()  
-model <span class="op">%&gt;%</span><span class="st"> </span>
-<span class="st">  </span><span class="kw">layer_dense</span>(<span class="dt">units =</span> <span class="dv">256</span>, <span class="dt">activation =</span> <span class="st">&#39;elu&#39;</span>,
-              <span class="dt">input_shape =</span> <span class="kw">c</span>(<span class="dv">6</span>),<span class="dt">kernel_regularizer =</span> <span class="kw">regularizer_l2</span>(<span class="fl">0.001</span>)) <span class="op">%&gt;%</span>
-<span class="st">  </span><span class="kw">layer_dense</span>(<span class="dt">units =</span> <span class="dv">128</span>, <span class="dt">activation =</span> <span class="st">&#39;elu&#39;</span>,
-              <span class="dt">input_shape =</span> <span class="kw">c</span>(<span class="dv">6</span>),<span class="dt">kernel_regularizer =</span> <span class="kw">regularizer_l2</span>(<span class="fl">0.001</span>)) <span class="op">%&gt;%</span>
-<span class="st">  </span>
-<span class="st">  </span><span class="kw">layer_dense</span>(<span class="dt">units =</span> <span class="dv">64</span>, <span class="dt">activation =</span> <span class="st">&#39;elu&#39;</span>,
-              <span class="dt">input_shape =</span> <span class="kw">c</span>(<span class="dv">6</span>),<span class="dt">kernel_regularizer =</span> <span class="kw">regularizer_l2</span>(<span class="fl">0.0001</span>)) <span class="op">%&gt;%</span>
-<span class="st">  </span><span class="kw">layer_dense</span>(<span class="dt">units =</span> <span class="dv">32</span>, <span class="dt">activation =</span> <span class="st">&#39;elu&#39;</span>,
-              <span class="dt">input_shape =</span> <span class="kw">c</span>(<span class="dv">6</span>),<span class="dt">kernel_regularizer =</span> <span class="kw">regularizer_l2</span>(<span class="fl">0.0001</span>)) <span class="op">%&gt;%</span>
-<span class="st">  </span><span class="kw">layer_dense</span>(<span class="dt">units =</span> <span class="dv">16</span>,<span class="dt">activation =</span> <span class="st">&#39;elu&#39;</span>,
-              <span class="dt">input_shape =</span> <span class="kw">c</span>(<span class="dv">6</span>),<span class="dt">kernel_regularizer =</span> <span class="kw">regularizer_l2</span>(<span class="fl">0.0001</span>)) <span class="op">%&gt;%</span>
-<span class="st">  </span><span class="kw">layer_dense</span>(<span class="dt">units =</span> <span class="dv">8</span>, <span class="dt">activation =</span> <span class="st">&#39;elu&#39;</span>,
-              <span class="dt">kernel_regularizer =</span> <span class="kw">regularizer_l2</span>(<span class="fl">0.0001</span>)) <span class="op">%&gt;%</span><span class="st"> </span>
-<span class="st">  </span><span class="kw">layer_dense</span>(<span class="dt">units =</span> <span class="dv">4</span>, <span class="dt">activation =</span> <span class="st">&#39;elu&#39;</span>,
-              <span class="dt">kernel_regularizer =</span> <span class="kw">regularizer_l2</span>(<span class="fl">0.0001</span>)) <span class="op">%&gt;%</span><span class="st"> </span>
-<span class="st">  </span><span class="kw">layer_dense</span>(<span class="dt">units =</span> <span class="dv">3</span>, <span class="dt">activation =</span> <span class="st">&#39;elu&#39;</span>,
-              <span class="dt">kernel_regularizer =</span> <span class="kw">regularizer_l2</span>(<span class="fl">0.0001</span>)) <span class="op">%&gt;%</span><span class="st"> </span>
-<span class="st">  </span><span class="kw">layer_dense</span>(<span class="dt">units =</span> <span class="dv">2</span>, <span class="dt">activation =</span> <span class="st">&#39;sigmoid&#39;</span>)
-
-
-
-
-model <span class="op">%&gt;%</span><span class="st"> </span>
-<span class="st">  </span><span class="kw">compile</span>(
-    <span class="dt">loss =</span> <span class="st">&#39;binary_crossentropy&#39;</span>,
-    <span class="co">#loss = &#39;categorical_crossentropy&#39;,</span>
-    <span class="co"># optimizer= &#39;rmsprop&#39;,</span>
-    <span class="dt">optimizer =</span> <span class="st">&#39;adam&#39;</span>,
-    <span class="dt">metrics =</span> <span class="kw">c</span>(<span class="st">&#39;accuracy&#39;</span>))
-
-<span class="kw">k_set_value</span>(model<span class="op">$</span>optimizer<span class="op">$</span>lr, <span class="fl">0.00001</span>)
-<span class="kw">k_set_value</span>(model<span class="op">$</span>optimizer<span class="op">$</span>decay, <span class="fl">0.00001</span><span class="op">/</span><span class="dv">100</span>)
-
-
-history &lt;-<span class="st"> </span>model <span class="op">%&gt;%</span>
-<span class="st">  </span><span class="kw">fit</span>(
-    <span class="dt">x =</span> values_df_model <span class="op">%&gt;%</span><span class="st"> </span>
-<span class="st">      </span>dplyr<span class="op">::</span><span class="kw">select</span>(<span class="kw">paste0</span>(<span class="st">&quot;V&quot;</span>,<span class="dv">1</span><span class="op">:</span><span class="dv">6</span>)) <span class="op">%&gt;%</span><span class="st"> </span>
-<span class="st">      </span><span class="kw">apply</span>(<span class="dv">2</span>,as.numeric),
-    <span class="dt">y =</span> values_df_model <span class="op">%&gt;%</span><span class="st"> </span>
-<span class="st">      </span>dplyr<span class="op">::</span><span class="kw">select</span>(motorway) <span class="op">%&gt;%</span><span class="st"> </span>
-<span class="st">      </span><span class="kw">apply</span>(<span class="dv">2</span>,as.numeric)<span class="op">%&gt;%</span><span class="st"> </span>
-<span class="st">      </span><span class="kw">to_categorical</span>(),
-    <span class="dt">epochs =</span> <span class="dv">60</span>, <span class="dt">batch_size =</span> <span class="dv">30</span>, 
-    <span class="dt">validation_split =</span> <span class="fl">0.1</span>)
-
-predicted &lt;-<span class="st"> </span>model <span class="op">%&gt;%</span><span class="st"> </span>
-<span class="st">  </span><span class="kw">predict</span>(values_df_test <span class="op">%&gt;%</span><span class="st"> </span>
-<span class="st">            </span>dplyr<span class="op">::</span><span class="kw">select</span>(<span class="kw">paste0</span>(<span class="st">&quot;V&quot;</span>,<span class="dv">1</span><span class="op">:</span><span class="dv">6</span>)) <span class="op">%&gt;%</span>
-<span class="st">            </span><span class="kw">apply</span>(<span class="dv">2</span>,as.numeric)) 
-values_df_test<span class="op">$</span>predicted &lt;-<span class="st"> </span>predicted[,<span class="dv">2</span>]  
-
-
-values_df_test2 &lt;-<span class="st"> </span>values_df_test <span class="op">%&gt;%</span><span class="st"> </span>
-<span class="st">  </span><span class="kw">mutate</span>(<span class="dt">predicted_binary =</span> <span class="kw">as.numeric</span>(predicted<span class="op">&gt;</span><span class="fl">0.5</span>),
-         <span class="dt">equal =</span> <span class="kw">as.numeric</span>(motorway<span class="op">==</span>predicted_binary))
-
-
-values_df_test2 <span class="op">%&gt;%</span><span class="st"> </span>
-<span class="st">  </span>dplyr<span class="op">::</span><span class="kw">rename</span>(<span class="dt">Type=</span>motorway) <span class="op">%&gt;%</span><span class="st"> </span>
-<span class="st">  </span><span class="kw">group_by</span>(Type) <span class="op">%&gt;%</span>
-<span class="st">  </span><span class="kw">summarise</span>(<span class="dt">Value =</span> <span class="kw">sum</span>(equal)<span class="op">/</span><span class="kw">n</span>()) <span class="op">%&gt;%</span><span class="st"> </span>
-<span class="st">  </span><span class="kw">mutate</span>(<span class="dt">Type=</span><span class="kw">ifelse</span>(Type<span class="op">==</span><span class="dv">1</span>,<span class="st">&quot;motorway_accuracy&quot;</span>,<span class="st">&quot;none_motorway_accuracy&quot;</span>))
+  
+  train_test_list &lt;-<span class="st"> </span><span class="kw">train_and_test_data</span>(<span class="dt">seed =</span> x,
+                                         <span class="dt">df =</span> values_df,
+                                         <span class="dt">trainsize =</span> <span class="fl">0.8</span>,
+                                         <span class="dt">replace_motorway =</span> <span class="ot">TRUE</span>,
+                                         <span class="dt">sample_size =</span> <span class="fl">2e4</span>,
+                                         <span class="dt">sample_test =</span> <span class="fl">1e4</span>)
+  
+  values_df_model &lt;-<span class="st"> </span>train_test_list<span class="op">$</span>train
+  values_df_test &lt;-<span class="st"> </span>train_test_list<span class="op">$</span>test
+  
+  model &lt;-<span class="st"> </span><span class="kw">keras_model_sequential</span>()  
+  model <span class="op">%&gt;%</span><span class="st"> </span>
+<span class="st">    </span><span class="kw">layer_dense</span>(<span class="dt">units =</span> <span class="dv">256</span>, <span class="dt">activation =</span> <span class="st">&#39;elu&#39;</span>,
+                <span class="dt">input_shape =</span> <span class="kw">c</span>(<span class="dv">6</span>),<span class="dt">kernel_regularizer =</span> <span class="kw">regularizer_l2</span>(<span class="fl">0.001</span>)) <span class="op">%&gt;%</span>
+<span class="st">    </span><span class="kw">layer_dense</span>(<span class="dt">units =</span> <span class="dv">128</span>, <span class="dt">activation =</span> <span class="st">&#39;elu&#39;</span>,
+                <span class="dt">input_shape =</span> <span class="kw">c</span>(<span class="dv">6</span>),<span class="dt">kernel_regularizer =</span> <span class="kw">regularizer_l2</span>(<span class="fl">0.001</span>)) <span class="op">%&gt;%</span>
+<span class="st">    </span>
+<span class="st">    </span><span class="kw">layer_dense</span>(<span class="dt">units =</span> <span class="dv">64</span>, <span class="dt">activation =</span> <span class="st">&#39;elu&#39;</span>,
+                <span class="dt">input_shape =</span> <span class="kw">c</span>(<span class="dv">6</span>),<span class="dt">kernel_regularizer =</span> <span class="kw">regularizer_l2</span>(<span class="fl">0.0001</span>)) <span class="op">%&gt;%</span>
+<span class="st">    </span><span class="kw">layer_dense</span>(<span class="dt">units =</span> <span class="dv">32</span>, <span class="dt">activation =</span> <span class="st">&#39;elu&#39;</span>,
+                <span class="dt">input_shape =</span> <span class="kw">c</span>(<span class="dv">6</span>),<span class="dt">kernel_regularizer =</span> <span class="kw">regularizer_l2</span>(<span class="fl">0.0001</span>)) <span class="op">%&gt;%</span>
+<span class="st">    </span><span class="kw">layer_dense</span>(<span class="dt">units =</span> <span class="dv">16</span>,<span class="dt">activation =</span> <span class="st">&#39;elu&#39;</span>,
+                <span class="dt">input_shape =</span> <span class="kw">c</span>(<span class="dv">6</span>),<span class="dt">kernel_regularizer =</span> <span class="kw">regularizer_l2</span>(<span class="fl">0.0001</span>)) <span class="op">%&gt;%</span>
+<span class="st">    </span><span class="kw">layer_dense</span>(<span class="dt">units =</span> <span class="dv">8</span>, <span class="dt">activation =</span> <span class="st">&#39;elu&#39;</span>,
+                <span class="dt">kernel_regularizer =</span> <span class="kw">regularizer_l2</span>(<span class="fl">0.0001</span>)) <span class="op">%&gt;%</span><span class="st"> </span>
+<span class="st">    </span><span class="kw">layer_dense</span>(<span class="dt">units =</span> <span class="dv">4</span>, <span class="dt">activation =</span> <span class="st">&#39;elu&#39;</span>,
+                <span class="dt">kernel_regularizer =</span> <span class="kw">regularizer_l2</span>(<span class="fl">0.0001</span>)) <span class="op">%&gt;%</span><span class="st"> </span>
+<span class="st">    </span><span class="kw">layer_dense</span>(<span class="dt">units =</span> <span class="dv">3</span>, <span class="dt">activation =</span> <span class="st">&#39;elu&#39;</span>,
+                <span class="dt">kernel_regularizer =</span> <span class="kw">regularizer_l2</span>(<span class="fl">0.0001</span>)) <span class="op">%&gt;%</span><span class="st"> </span>
+<span class="st">    </span><span class="kw">layer_dense</span>(<span class="dt">units =</span> <span class="dv">2</span>, <span class="dt">activation =</span> <span class="st">&#39;sigmoid&#39;</span>)
+  
+  model <span class="op">%&gt;%</span><span class="st"> </span>
+<span class="st">    </span><span class="kw">compile</span>(
+      <span class="dt">loss =</span> <span class="st">&#39;binary_crossentropy&#39;</span>,
+      <span class="dt">optimizer =</span> <span class="st">&#39;adam&#39;</span>,
+      <span class="dt">metrics =</span> <span class="kw">c</span>(<span class="st">&#39;accuracy&#39;</span>))
+  
+  <span class="kw">k_set_value</span>(model<span class="op">$</span>optimizer<span class="op">$</span>lr, <span class="fl">0.00001</span>)
+  <span class="kw">k_set_value</span>(model<span class="op">$</span>optimizer<span class="op">$</span>decay, <span class="fl">0.00001</span><span class="op">/</span><span class="dv">100</span>)
+  
+  
+  history &lt;-<span class="st"> </span>model <span class="op">%&gt;%</span>
+<span class="st">    </span><span class="kw">fit</span>(
+      <span class="dt">x =</span> values_df_model <span class="op">%&gt;%</span><span class="st"> </span>
+<span class="st">        </span>dplyr<span class="op">::</span><span class="kw">select</span>(<span class="kw">paste0</span>(<span class="st">&quot;V&quot;</span>,<span class="dv">1</span><span class="op">:</span><span class="dv">6</span>)) <span class="op">%&gt;%</span><span class="st"> </span>
+<span class="st">        </span><span class="kw">apply</span>(<span class="dv">2</span>,as.numeric),
+      <span class="dt">y =</span> values_df_model <span class="op">%&gt;%</span><span class="st"> </span>
+<span class="st">        </span>dplyr<span class="op">::</span><span class="kw">select</span>(motorway) <span class="op">%&gt;%</span><span class="st"> </span>
+<span class="st">        </span><span class="kw">apply</span>(<span class="dv">2</span>,as.numeric)<span class="op">%&gt;%</span><span class="st"> </span>
+<span class="st">        </span><span class="kw">to_categorical</span>(),
+      <span class="dt">epochs =</span> <span class="dv">60</span>, <span class="dt">batch_size =</span> <span class="dv">30</span>, 
+      <span class="dt">validation_split =</span> <span class="fl">0.1</span>)
+  
+  predicted &lt;-<span class="st"> </span>model <span class="op">%&gt;%</span><span class="st"> </span>
+<span class="st">    </span><span class="kw">predict</span>(values_df_test <span class="op">%&gt;%</span><span class="st"> </span>
+<span class="st">              </span>dplyr<span class="op">::</span><span class="kw">select</span>(<span class="kw">paste0</span>(<span class="st">&quot;V&quot;</span>,<span class="dv">1</span><span class="op">:</span><span class="dv">6</span>)) <span class="op">%&gt;%</span>
+<span class="st">              </span><span class="kw">apply</span>(<span class="dv">2</span>,as.numeric)) 
+  values_df_test<span class="op">$</span>predicted &lt;-<span class="st"> </span>predicted[,<span class="dv">2</span>]  
+  
+  
+  values_df_test2 &lt;-<span class="st"> </span>values_df_test <span class="op">%&gt;%</span><span class="st"> </span>
+<span class="st">    </span><span class="kw">mutate</span>(<span class="dt">predicted_binary =</span> <span class="kw">as.numeric</span>(predicted<span class="op">&gt;</span><span class="fl">0.5</span>),
+           <span class="dt">equal =</span> <span class="kw">as.numeric</span>(motorway<span class="op">==</span>predicted_binary))
+  
+  
+  values_df_test2 <span class="op">%&gt;%</span><span class="st"> </span>
+<span class="st">    </span><span class="kw">predicted</span>()
 }) <span class="op">%&gt;%</span><span class="st"> </span>
 <span class="st">  </span><span class="kw">do.call</span>(rbind,.)</code></pre></div>
-<div class="sourceCode"><pre class="sourceCode r"><code class="sourceCode r"><span class="kw">list.files</span>(<span class="st">&quot;output/one_scene_model_eval/&quot;</span>,<span class="dt">full.names=</span><span class="ot">TRUE</span>) <span class="op">%&gt;%</span><span class="st"> </span>
-<span class="st">  </span><span class="kw">lapply</span>(<span class="cf">function</span>(x) {
-    dat &lt;-<span class="st"> </span><span class="kw">read.csv</span>(x)
-    dat<span class="op">$</span>Estimator &lt;-<span class="st"> </span>x <span class="op">%&gt;%</span><span class="st"> </span>
-<span class="st">      </span><span class="kw">strsplit</span>(<span class="st">&quot;/&quot;</span>) <span class="op">%&gt;%</span><span class="st"> </span>
-<span class="st">      </span><span class="kw">lapply</span>(<span class="st">`</span><span class="dt">[</span><span class="st">`</span>,<span class="dv">3</span>) <span class="op">%&gt;%</span><span class="st"> </span>
-<span class="st">      </span>unlist <span class="op">%&gt;%</span><span class="st"> </span>
-<span class="st">      </span><span class="kw">gsub</span>(<span class="st">&quot;.csv&quot;</span>,<span class="st">&quot;&quot;</span>,.)
-    dat
-  }) <span class="op">%&gt;%</span><span class="st"> </span>
-<span class="st">  </span><span class="kw">do.call</span>(rbind,.) <span class="op">%&gt;%</span><span class="st"> </span>
-<span class="st">  </span><span class="kw">ggplot</span>() <span class="op">+</span>
-<span class="st">  </span><span class="kw">geom_violin</span>(<span class="kw">aes</span>(<span class="dt">x=</span>Type,<span class="dt">y=</span>Value,<span class="dt">fill=</span>Estimator))</code></pre></div>
-<p><img src="road_to_prediction_files/figure-html/evalmodelsfor1scene-1.png" width="672" /></p>
+</div>
+<div id="convolutional-neural-network" class="section level2">
+<h2><span class="header-section-number">5.6</span> Convolutional Neural Network</h2>
+<div class="sourceCode"><pre class="sourceCode r"><code class="sourceCode r">listed_raster &lt;-<span class="st"> </span><span class="kw">list.files</span>(<span class="st">&quot;E:/landsatscene/LT051940232011072701T1-SC20180926185810/&quot;</span>,<span class="dt">pattern=</span><span class="st">&quot;band[0-9].tif$&quot;</span>,<span class="dt">full.names =</span> <span class="ot">TRUE</span>)
 
+norm_mean &lt;-<span class="st"> </span><span class="cf">function</span>(x) {
+  (x<span class="op">-</span><span class="kw">mean</span>(x,<span class="dt">na.rm=</span><span class="ot">TRUE</span>))<span class="op">/</span>(<span class="kw">max</span>(x,<span class="dt">na.rm=</span><span class="ot">TRUE</span>)<span class="op">-</span><span class="kw">min</span>(x,<span class="dt">na.rm=</span><span class="ot">TRUE</span>))
+}
+
+ra1_path &lt;-<span class="st"> </span>listed_raster[<span class="dv">1</span>]
+
+brick &lt;-<span class="st"> </span><span class="kw">lapply</span>(listed_raster,<span class="cf">function</span>(ra1_path) {
+  <span class="co"># ra1 &lt;- raster(ra1_path)</span>
+  ve1 &lt;-<span class="st"> </span><span class="kw">velox</span>(ra1_path)
+  
+  ve1<span class="op">$</span><span class="kw">crop</span>(mv_st <span class="op">%&gt;%</span><span class="st"> </span>
+<span class="st">             </span>extent <span class="op">%&gt;%</span><span class="st"> </span>
+<span class="st">             </span><span class="kw">as.vector</span>())
+  
+  ra1_cropped &lt;-<span class="st"> </span>ve1<span class="op">$</span><span class="kw">as.RasterLayer</span>()
+  
+  ra1_cropped_masked &lt;-<span class="st"> </span><span class="kw">mask</span>(ra1_cropped,mv_raster)
+  
+  ra1_cropped_masked_values &lt;-<span class="st"> </span><span class="kw">getValues</span>(ra1_cropped_masked)
+  
+  cloudless_values &lt;-<span class="st"> </span>ra1_cropped_masked_values <span class="op">*</span>cloud_identification_values_<span class="dv">3</span>
+  
+  ra1_cropped_masked_cloudless_values &lt;-
+<span class="st">    </span><span class="kw">ifelse_cpp</span>(cloudless_values,<span class="dv">0</span>,<span class="dv">0</span>,<span class="ot">NA</span>,ra1_cropped_masked_values)
+    
+  
+  ra1_cropped_masked_cloudless_values_norm &lt;-<span class="st"> </span><span class="kw">norm_mean</span>(ra1_cropped_masked_cloudless_values)
+  
+  <span class="kw">setValues</span>(ra1_cropped_masked,ra1_cropped_masked_cloudless_values_norm)
+    
+}) <span class="op">%&gt;%</span><span class="st"> </span>
+<span class="st">  </span>brick
+
+<span class="co"># aggregate</span>
+<span class="co"># to polygon</span>
+<span class="co"># extract from each band</span>
+<span class="co"># return as array in list</span>
+
+<span class="co"># aggregate raster to get mask to crop -- faster with velox</span>
+b1_velox &lt;-<span class="st"> </span><span class="kw">velox</span>(brick[[<span class="dv">1</span>]])
+b1_agg &lt;-<span class="st"> </span>b1_velox<span class="op">$</span><span class="kw">copy</span>()
+b1_agg<span class="op">$</span><span class="kw">aggregate</span>(<span class="dt">factor=</span><span class="kw">c</span>(<span class="dv">5</span>,<span class="dv">5</span>),<span class="dt">aggtype=</span><span class="st">&quot;sum&quot;</span>)
+agg_raster &lt;-<span class="st"> </span>b1_agg<span class="op">$</span><span class="kw">as.RasterLayer</span>()
+agg_raster <span class="op">%&gt;%</span><span class="st"> </span><span class="kw">getValues</span>() <span class="op">%&gt;%</span><span class="st"> </span>is.na <span class="op">%&gt;%</span><span class="st"> </span>which <span class="op">%&gt;%</span><span class="st"> </span>length
+agg_raster <span class="op">%&gt;%</span><span class="st"> </span><span class="kw">getValues</span>() <span class="op">%&gt;%</span><span class="st"> </span>length
+<span class="co"># transform mask to spatialpolygon</span>
+
+b1_agg_poly &lt;-<span class="st"> </span>agg_raster <span class="op">%&gt;%</span><span class="st"> </span>
+<span class="st">  </span><span class="kw">as</span>(<span class="st">&quot;SpatialPolygons&quot;</span>)
+
+<span class="co"># again, do it in velox because its way faster</span>
+brick_velox &lt;-<span class="st"> </span><span class="kw">velox</span>(brick)
+
+
+array_of_images &lt;-<span class="st"> </span><span class="kw">laply</span>(<span class="dv">1</span><span class="op">:</span><span class="kw">length</span>(b1_agg_poly),<span class="cf">function</span>(y) {
+  <span class="cf">if</span> (y<span class="op">%%</span><span class="dv">1000</span><span class="op">==</span><span class="dv">0</span>) <span class="kw">message</span>(y)
+  b1 &lt;-<span class="st"> </span>brick_velox<span class="op">$</span><span class="kw">copy</span>()
+  b1<span class="op">$</span><span class="kw">crop</span>(b1_agg_poly[y,])
+  <span class="kw">laply</span>(<span class="dv">1</span><span class="op">:</span><span class="dv">6</span>,<span class="cf">function</span>(x) b1<span class="op">$</span><span class="kw">as.matrix</span>(x))
+})
+
+<span class="co"># remove with NA</span>
+del &lt;-<span class="st"> </span><span class="kw">lapply</span>(<span class="dv">1</span><span class="op">:</span><span class="kw">dim</span>(array_of_images)[<span class="dv">1</span>],<span class="cf">function</span>(x) array_of_images[x,,,] <span class="op">%&gt;%</span><span class="st"> </span>
+<span class="st">                </span>is.na <span class="op">%&gt;%</span><span class="st"> </span>
+<span class="st">                </span>any) <span class="op">%&gt;%</span><span class="st"> </span>
+<span class="st">  </span>unlist <span class="op">%&gt;%</span>
+<span class="st">  </span>which
+array_of_images &lt;-<span class="st"> </span>array_of_images[<span class="op">-</span>del,,,]
+<span class="co"># for Yd</span>
+motorways_raster01 &lt;-<span class="st"> </span><span class="kw">setValues</span>(motorways_raster,<span class="kw">ifelse</span>(<span class="kw">is.na</span>(<span class="kw">getValues</span>(motorways_raster)),<span class="dv">0</span>,<span class="dv">1</span>))
+motorways_velox &lt;-<span class="st"> </span><span class="kw">velox</span>(motorways_raster01)
+motorways_velox<span class="op">$</span><span class="kw">aggregate</span>(<span class="dt">factor=</span><span class="kw">c</span>(<span class="dv">5</span>,<span class="dv">5</span>),<span class="dt">aggtype=</span><span class="st">&quot;max&quot;</span>)
+
+Y &lt;-<span class="st"> </span>motorways_velox<span class="op">$</span><span class="kw">extract</span>(b1_agg_poly,<span class="dt">fun=</span>max)
+
+Y &lt;-<span class="st"> </span>Y[<span class="op">-</span>del,]
+
+Y_cat &lt;-<span class="st"> </span><span class="kw">to_categorical</span>(Y <span class="op">%&gt;%</span><span class="st"> </span><span class="kw">as.vector</span>())</code></pre></div>
+<div class="sourceCode"><pre class="sourceCode r"><code class="sourceCode r">pos &lt;-<span class="st"> </span><span class="kw">which</span>(Y<span class="op">==</span><span class="dv">1</span>)
+
+generated_cnn &lt;-<span class="st"> </span><span class="kw">lapply</span>(random_number,<span class="cf">function</span>(x) {
+  
+  <span class="kw">set.seed</span>(x)
+  pos_train &lt;-<span class="st"> </span><span class="kw">sample</span>(pos,<span class="kw">round</span>(<span class="kw">length</span>(pos)<span class="op">*</span><span class="fl">0.8</span>)) <span class="op">%&gt;%</span><span class="st"> </span><span class="kw">rep</span>(<span class="dv">8</span>)
+  pos_test &lt;-<span class="st"> </span>pos[<span class="op">!</span>pos<span class="op">%in%</span>pos_train] <span class="op">%&gt;%</span><span class="st"> </span><span class="kw">rep</span>(<span class="dv">8</span>)
+  
+  neg &lt;-<span class="st"> </span><span class="kw">which</span>(Y<span class="op">==</span><span class="dv">0</span>)
+  neg_train &lt;-<span class="st"> </span><span class="kw">sample</span>(neg,<span class="kw">length</span>(pos_train))
+  neg_test &lt;-<span class="st"> </span><span class="kw">sample</span>(neg[<span class="op">!</span>neg<span class="op">%in%</span>neg_train],<span class="kw">length</span>(pos_test))
+  
+    y_train &lt;-<span class="st"> </span>Y_cat[<span class="kw">c</span>(pos_train,neg_train) <span class="op">%&gt;%</span><span class="st"> </span>
+<span class="st">                     </span>sort,]
+  <span class="co"># y_val &lt;- Y_cat[c(pos_val,neg_val) %&gt;% </span>
+                   <span class="co"># sort,]</span>
+  y_test &lt;-<span class="st"> </span>Y_cat[<span class="kw">c</span>(pos_test,neg_test) <span class="op">%&gt;%</span><span class="st"> </span>
+<span class="st">                    </span>sort,]
+  x_train &lt;-<span class="st"> </span>array_of_images[<span class="kw">c</span>(pos_train,neg_train) <span class="op">%&gt;%</span><span class="st"> </span>
+<span class="st">                               </span>sort,,,]
+  <span class="co"># x_val &lt;- array_of_images[c(pos_val,neg_val) %&gt;% </span>
+                             <span class="co"># sort,,,]</span>
+  x_test &lt;-<span class="st"> </span>array_of_images[<span class="kw">c</span>(pos_test,neg_test) <span class="op">%&gt;%</span><span class="st"> </span>
+<span class="st">                              </span>sort,,,]  
+  
+  model&lt;-<span class="kw">keras_model_sequential</span>()
+  
+  model <span class="op">%&gt;%</span><span class="st">  </span>
+<span class="st">    </span><span class="kw">layer_conv_2d</span>(<span class="dt">filters=</span><span class="dv">5</span>,<span class="dt">kernel_size=</span><span class="dv">5</span>,<span class="dt">data_format=</span><span class="st">&quot;channels_first&quot;</span>, 
+                  <span class="dt">padding=</span><span class="st">&quot;same&quot;</span>,<span class="dt">input_shape=</span><span class="kw">c</span>(<span class="dv">6</span>,<span class="dv">5</span>,<span class="dv">5</span>),<span class="dt">activation =</span> <span class="st">&quot;elu&quot;</span>
+                  ,<span class="dt">kernel_regularizer =</span> <span class="kw">regularizer_l2</span>(<span class="fl">0.01</span>)
+    ) <span class="op">%&gt;%</span><span class="st">  </span>
+<span class="st">    </span><span class="kw">layer_conv_2d</span>(<span class="dt">filter=</span><span class="dv">10</span>,<span class="dt">kernel_size=</span><span class="dv">5</span>,<span class="dt">activation=</span><span class="st">&quot;elu&quot;</span>,<span class="dt">padding=</span><span class="st">&quot;same&quot;</span>,
+                  <span class="dt">kernel_regularizer =</span> <span class="kw">regularizer_l2</span>(<span class="fl">0.0001</span>))  <span class="op">%&gt;%</span>
+<span class="st">    </span><span class="kw">layer_max_pooling_2d</span>(<span class="dt">pool_size=</span><span class="kw">c</span>(<span class="dv">3</span>,<span class="dv">3</span>)) <span class="op">%&gt;%</span><span class="st">  </span>
+<span class="st">    </span><span class="kw">layer_flatten</span>() <span class="op">%&gt;%</span><span class="st">  </span>
+<span class="st">    </span><span class="kw">layer_dense</span>(<span class="dt">units =</span> <span class="dv">64</span>,<span class="dt">activation =</span> <span class="st">&quot;elu&quot;</span>
+                ,<span class="dt">kernel_regularizer =</span> <span class="kw">regularizer_l2</span>(<span class="fl">0.0001</span>)
+    ) <span class="op">%&gt;%</span><span class="st">  </span>
+<span class="st">    </span><span class="kw">layer_dense</span>(<span class="dt">units =</span> <span class="dv">32</span>,<span class="dt">activation =</span> <span class="st">&quot;elu&quot;</span>
+                ,<span class="dt">kernel_regularizer =</span> <span class="kw">regularizer_l2</span>(<span class="fl">0.0001</span>)
+    ) <span class="op">%&gt;%</span><span class="st">  </span>
+<span class="st">    </span><span class="kw">layer_dense</span>(<span class="dt">units =</span> <span class="dv">16</span>,<span class="dt">activation =</span> <span class="st">&quot;elu&quot;</span>
+                ,<span class="dt">kernel_regularizer =</span> <span class="kw">regularizer_l2</span>(<span class="fl">0.0001</span>)
+    ) <span class="op">%&gt;%</span><span class="st">  </span>
+<span class="st">    </span><span class="kw">layer_dense</span>(<span class="dt">units =</span> <span class="dv">8</span>,<span class="dt">activation =</span> <span class="st">&quot;elu&quot;</span>
+                ,<span class="dt">kernel_regularizer =</span> <span class="kw">regularizer_l2</span>(<span class="fl">0.0001</span>)
+    ) <span class="op">%&gt;%</span><span class="st">  </span>
+<span class="st">    </span>
+<span class="st">    </span><span class="kw">layer_dense</span>(<span class="dt">units =</span> <span class="dv">4</span>,<span class="dt">activation =</span> <span class="st">&quot;elu&quot;</span>
+                ,<span class="dt">kernel_regularizer =</span> <span class="kw">regularizer_l2</span>(<span class="fl">0.0001</span>)
+    ) <span class="op">%&gt;%</span><span class="st">  </span>
+<span class="st">    </span><span class="kw">layer_dense</span>(<span class="dt">units =</span> <span class="dv">3</span>,<span class="dt">activation =</span> <span class="st">&quot;elu&quot;</span>
+                ,<span class="dt">kernel_regularizer =</span> <span class="kw">regularizer_l2</span>(<span class="fl">0.0001</span>)
+    ) <span class="op">%&gt;%</span><span class="st">  </span>
+<span class="st">    </span><span class="kw">layer_dense</span>(<span class="dv">2</span>,<span class="dt">activation =</span> <span class="st">&quot;sigmoid&quot;</span>) 
+  
+  
+  model <span class="op">%&gt;%</span>
+<span class="st">    </span><span class="kw">compile</span>(<span class="dt">loss=</span><span class="st">&quot;categorical_crossentropy&quot;</span>,
+            <span class="dt">optimizer=</span><span class="kw">optimizer_rmsprop</span>(<span class="dt">lr =</span> <span class="fl">0.0001</span>,<span class="dt">decay =</span> <span class="fl">1e-8</span>),
+            <span class="co"># optimizer_adam( lr= 0.0001 , decay = 1e-8 ),</span>
+            <span class="dt">metrics =</span> <span class="st">&quot;accuracy&quot;</span>)
+  
+  
+  
+  model <span class="op">%&gt;%</span>
+<span class="st">    </span><span class="kw">fit</span>( x_train,y_train ,<span class="dt">batch_size=</span><span class="dv">32</span>,
+                 <span class="dt">epochs=</span><span class="dv">60</span>,<span class="co">#validation_data = list(x_val, y_val),</span>
+                 <span class="dt">shuffle=</span><span class="ot">TRUE</span>)
+  
+  
+  predicted &lt;-<span class="st"> </span>model <span class="op">%&gt;%</span><span class="st"> </span>
+<span class="st">    </span><span class="kw">predict</span>(x_test) 
+  
+  
+  pred &lt;-<span class="st"> </span><span class="kw">data.frame</span>(<span class="dt">orig=</span>y_test[,<span class="dv">2</span>],<span class="dt">pred=</span><span class="kw">ifelse</span>(predicted[,<span class="dv">2</span>]<span class="op">&gt;</span><span class="fl">0.5</span>,<span class="dv">1</span>,<span class="dv">0</span>)) <span class="op">%&gt;%</span><span class="st"> </span>
+<span class="st">    </span><span class="kw">mutate</span>(<span class="dt">res=</span><span class="kw">apply</span>(.,<span class="dv">1</span>,<span class="cf">function</span>(x) {
+      <span class="cf">if</span> (x[<span class="dv">1</span>]<span class="op">==</span>x[<span class="dv">2</span>]) <span class="kw">return</span>(<span class="dv">1</span>)
+      <span class="dv">0</span>
+    })) <span class="op">%&gt;%</span><span class="st"> </span>
+<span class="st">    </span><span class="kw">group_by</span>(orig,res) <span class="op">%&gt;%</span><span class="st"> </span>
+<span class="st">    </span>dplyr<span class="op">::</span><span class="kw">summarize</span>(<span class="dt">n=</span>dplyr<span class="op">::</span><span class="kw">n</span>())
+  
+  <span class="kw">data.frame</span>(<span class="dt">Type=</span><span class="kw">c</span>(<span class="st">&quot;None Motorway&quot;</span>,<span class="st">&quot;Motorway&quot;</span>),
+             <span class="dt">Value =</span> <span class="kw">c</span>(pred<span class="op">$</span>n[<span class="dv">2</span>]<span class="op">/</span><span class="kw">sum</span>(pred<span class="op">$</span>n[<span class="dv">1</span><span class="op">:</span><span class="dv">2</span>]),
+                       pred<span class="op">$</span>n[<span class="dv">4</span>]<span class="op">/</span><span class="kw">sum</span>(pred<span class="op">$</span>n[<span class="dv">3</span><span class="op">:</span><span class="dv">4</span>])))
+  
+  
+}) <span class="op">%&gt;%</span><span class="st"> </span>
+<span class="st">  </span><span class="kw">do.call</span>(rbind,.)</code></pre></div>
+
+</div>
 </div>
             </section>
 
           </div>
         </div>
       </div>
-<a href="selecting-landsat-images.html" class="navigation navigation-prev " aria-label="Previous page"><i class="fa fa-angle-left"></i></a>
-<a href="open-questionsissues.html" class="navigation navigation-next " aria-label="Next page"><i class="fa fa-angle-right"></i></a>
+<a href="preparation-for-a-basic-analysis.html" class="navigation navigation-prev " aria-label="Previous page"><i class="fa fa-angle-left"></i></a>
+<a href="evaluation-of-basic-models.html" class="navigation navigation-next " aria-label="Next page"><i class="fa fa-angle-right"></i></a>
     </div>
   </div>
 <script src="libs/gitbook-2.6.7/js/app.min.js"></script>

@@ -1,128 +1,5 @@
-# Basic Analysis for motorway
-
-First, I will look at one satellite picture to show the general procedure.
-
-According to the Landsat [website](https://landsat.usgs.gov/landsat-surface-reflectance-quality-assessment) the pixel_qa band has a more accurate prediction for identifying clouds, cloud shadows, water, and snow.  
-When transforming spatial vector objects to raster objects, I always rely on the fasterize package which is written in C++ and a lot faster than the functions in the raster package.
-
-
-
-```{r pixelqatransform,cache=TRUE}
-cloud_identification <- 
-  raster("E:/landsatscene/LT051940232011072701T1-SC20180926185810/LT05_L1TP_194023_20110727_20180312_01_T1_pixel_qa.tif") 
-
-# crop raster to extent of MV
-cloud_identification_cropped <- 
-  crop(cloud_identification,
-       st_transform(mv,crs=proj4string(cloud_identification)))
-
-# transform MV Polygon to a raster
-mv_raster <- 
-  fasterize::fasterize(st_transform(mv,
-                                    crs=proj4string(cloud_identification)),
-                       cloud_identification_cropped)
-
-# set all values that lie outside of MV to NA
-cloud_identification_masked <- mask(cloud_identification_cropped,mv_raster)
-
-# extract the values of the cloud raster
-cloud_identification_values <- getValues(cloud_identification_masked)
-
-# reference values for not having a clear sight on the ground
-none_clear_values <- c(96, 112,160,176,224,68,72,80,96, 
-                       112,132,136,144,160,176,224,72,
-                       136,68,132,80,112,144,176)
-
-# Create a mask vector. NA for each pixel outside of MV, 0 for if its inside
-# but not a clear view, and 1 if its inside MV and there is a clear view
-cloud_identification_values_2 <- 
-  ifelse(cloud_identification_values %in% none_clear_values,0,
-         ifelse(is.na(cloud_identification_values),NA,1))
-
-# create raster from mask vector
-cloud_identification_2 <- setValues(cloud_identification_masked,
-                                    cloud_identification_values_2) 
-
-# transform motorways to a SpatialPolygon by buffering 1 meter around the lines
-motorways_sf <- spTransform(motorways,
-                            CRS(proj4string(cloud_identification_2))) %>% 
-  gBuffer(width = 2) %>% 
-  st_as_sf()
-
-# transform roads to a raster
-motorways_raster <- fasterize::fasterize(motorways_sf,
-                     cloud_identification_2)
-
-covered_by_road <- mask(cloud_identification_2,motorways_raster) %>% 
-  getValues() %>% 
-  is.na() %>% 
-  `!` %>% 
-  which()
-
-cloud_identification_values_3 <- ifelse(is.na(cloud_identification_values_2),0,cloud_identification_values_2)
-```
-
-```{r tableofcloud,echo=FALSE,cache=FALSE}
-Rcpp::sourceCpp("cppsource/table_cpp.cpp")
-cbind(
-  table_cpp(cloud_identification_values_2[!is.na(cloud_identification_values_2)]) %>% 
-  do.call(rbind,.),c(sum(is.na(cloud_identification_values_2)),NA)) %>% 
-  t %>% 
-  as.data.frame %>% 
-  mutate(lengths = round(100*lengths/sum(lengths),2)) %>% 
-  rename(Percentage = lengths,
-         Values = values) %>% 
-  kable(caption="Coverage for different values. `NA` are the rims of the picture, `0` is cloud covered, and `1` is free sight.")
-```
-
-The following code chunk loads each band, crops it to the extent of MV, and sets all pixel to NA that either have no undisturbed sight or lie outside of MV.
-The values are bound together in a rectengular data.frame with the added information whether the specific pixel is a motorway or not. All NAs are subsequently removed from the data.frame and all values are mean normalized.
-
-```{r rasterbrick1,cache=TRUE}
-listed_raster <- list.files("E:/landsatscene/LT051940232011072701T1-SC20180926185810/",pattern="band[0-9].tif$",full.names = TRUE)
-
-values_df <- lapply(listed_raster,function(ra1_path) {
-  
-  ra1 <- raster(ra1_path)
-  
-  ra1_cropped <- crop(ra1,st_transform(mv,crs=proj4string(ra1)))
-  
-  ra1_cropped_masked <- mask(ra1_cropped,mv_raster)
-  
-  ra1_cropped_masked_cloudless <- setValues(ra1_cropped_masked,ifelse(getValues(ra1_cropped_masked)*cloud_identification_values_3==0,NA,getValues(ra1_cropped_masked)))
-  
-  getValues(ra1_cropped_masked_cloudless)
-  
-}) %>% 
-  do.call(cbind,.) %>% 
-  as.data.frame()
-
-values_df$motorway <- 0
-values_df$motorway[covered_by_road] <- 1
-
-identify_na <- sapply(paste0("V",1:6),function(x) {
-   values_df[,x] %>% 
-  is.na() %>% 
-  which()
-}) %>%
-  unlist() %>% 
-  unique()
-
-if (length(identify_na) > 0) {
-  values_df <- values_df %>% 
-    dplyr::slice(-identify_na)
-}
-
-norm_mean <- function(x) {
-  (x-mean(x))/(max(x)-min(x))
-}
-
-values_df[,paste0("V",1:6)] <- values_df[,paste0("V",1:6)] %>% 
-  apply(2,norm_mean)
-
-```
-
-
+# Basic Analysis
+I am using OLS, Random Forest, XGBoost, a neural network, and a convolutional neural network to predict motorway pixel. The train/test split is for all methods 80/20 and I run each method 100 times to get to different splits. The results are presented in the next chapter.  
 
 The `train_and_test_data` function is creating a train and test set. If `replace_motorway` is set to `TRUE` the same amount of motorway pixel will be sampled for the training data as of no motorway pixel. This way, the distribution will 
 
@@ -177,7 +54,7 @@ predicted <- function(data) {
     data %>% 
     dplyr::rename(Type=motorway) %>% 
     group_by(Type) %>%
-    summarise(Value = sum(equal)/n()) %>% 
+    dplyr::summarise(Value = sum(equal)/n()) %>% 
     mutate(Type=ifelse(Type==1,"Motorway","None Motorway"))
 }
 
@@ -223,6 +100,41 @@ generated <- lapply(random_number,function(x) {
 
 ```{r saveols,eval=FALSE,echo=FALSE}
 write.csv(generated,"output/one_scene_model_eval/ols.csv",row.names = FALSE)
+
+```
+
+## Logit
+
+```{r glmmodel,echo=TRUE,eval=FALSE}
+generated_glm <- lapply(random_number,function(x) {
+  train_test_list <- train_and_test_data(seed = x,
+                                         df = values_df,
+                                         trainsize = 0.8,
+                                         sample_size = 1e4,
+                                         sample_test = 1e4)
+  values_df_model <- train_test_list$train
+  values_df_test <- train_test_list$test
+  
+  # model
+  model <- glm(motorway~V1+V2+V3+V4+V5+V6,data=values_df_model,family=binomial) 
+  
+  # predict
+  values_df_test$predicted <- predict(model,values_df_test)
+  
+  values_df_test <- values_df_test %>% 
+    mutate(predicted_binary = as.numeric(predicted>0.5),
+           equal = as.numeric(motorway==predicted_binary))
+  
+  
+  values_df_test %>% 
+    predicted()
+  
+}) %>% 
+  do.call(rbind,.)
+```
+
+```{r saveglm,eval=FALSE,echo=FALSE}
+write.csv(generated_glm,"output/one_scene_model_eval/logit.csv",row.names = FALSE)
 
 ```
 
@@ -577,7 +489,7 @@ generated_cnn <- lapply(random_number,function(x) {
     group_by(orig,res) %>% 
     dplyr::summarize(n=dplyr::n())
   
-  data.frame(Type=c("none_motorway_accuracy","motorway_accuracy"),
+  data.frame(Type=c("None Motorway","Motorway"),
              Value = c(pred$n[2]/sum(pred$n[1:2]),
                        pred$n[4]/sum(pred$n[3:4])))
   
@@ -588,64 +500,6 @@ generated_cnn <- lapply(random_number,function(x) {
 
 ```{r cnn_save,eval=FALSE,echo=FALSE}
 write.csv(generated_cnn,"output/one_scene_model_eval/cnn.csv",row.names = FALSE)
-
-```
-
-
-
-
-
-## Evaluation
-```{r mergesims,eval=FALSE}
-all_simulations <- list(OLS=generated,RandomForest=generated_rf,XGBoost=generated_xgb,Keras=generated_keras,CNN=generated_cnn)
-```
-
-```{r reloadsims,echo=FALSE}
-methods <- c("OLS","RandomForest","XGBoost","Keras","CNN")
-all_simulations <- lapply(methods,function(x) {
-  list.files("output/one_scene_model_eval/",full.names=TRUE,pattern=x %>% 
-               tolower) %>% 
-     read.csv() %>% 
-      mutate(Type= ifelse(Type=="motorway_accuracy","Motorway","None Motorway")) 
-})
-
-
-
-names(all_simulations) <- methods
-```
-
-Before evaluating, I remove one prediction of the neural network that predicts that all pixels are none road pixels.
-```{r allsimulationsdf}
-all_simulations_df <- names(all_simulations) %>% 
-  lapply(function(name) {
-    dat <- all_simulations[[name]]
-    dat$Method <- name
-    dat %>% 
-      filter(!is.na(Value))
-  }) %>% 
-  do.call(rbind,.) %>% 
-  filter(Value>0&Value<1)
-
-nrow(all_simulations_df)/2
-```
-
-
-Figure \@ref(fig:evalmodelsfor1scene) shows the accuracy for four different methods. All approaches yield similar results with the average accuracy for motorway prediction lying between 68% and 90%. The accuracy of predicting the none motorway pixels is slightly higher and the difference between the methods is more obvious.  
-In general OLS performs less well than the other three and the neural network has the greates span and even has some predictions below 70% for motorway. Random Forest and XGBoost yield the best results, especially when it comes to the "none motorway" prediction were both are consistently above 90%.
-
-
-```{r evalmodelsfor1scene,fig.align="center",fig.cap="Comparison between OLS, Random Forest, XGBoost, and neural network (Keras)."}
-all_simulations_df %>% 
-  group_by(Method,Type) %>% 
-  summarise(mean=round(mean(Value),4)*100) %>% 
-spread(Type,mean) %>% 
-     kable(caption = "Accuracy for motorway and none motorway pixels for different methods in percent.")
-
-all_simulations_df %>% 
-  ggplot() +
-  geom_violin(aes(x=Type,y=Value,fill=as_factor(Method))) +
-  ylab("Accuracy") +
-  guides(fill=guide_legend(title="Methods"))
 
 ```
 

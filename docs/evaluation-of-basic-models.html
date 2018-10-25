@@ -32,8 +32,8 @@
   <meta name="apple-mobile-web-app-status-bar-style" content="black">
   
   
-<link rel="prev" href="introduction.html">
-<link rel="next" href="selecting-landsat-images.html">
+<link rel="prev" href="basic-analysis.html">
+<link rel="next" href="open-questionsissues.html">
 <script src="libs/jquery-2.2.3/jquery.min.js"></script>
 <link href="libs/gitbook-2.6.7/css/style.css" rel="stylesheet" />
 <link href="libs/gitbook-2.6.7/css/plugin-bookdown.css" rel="stylesheet" />
@@ -161,73 +161,82 @@ code > span.in { color: #8f5902; font-weight: bold; font-style: italic; } /* Inf
             <section class="normal" id="section-">
 <!--  <center><img src="logo/normal_3.png" width="300px"></center> -->
 <br><br><br><br>
-<div id="extracting-road-data" class="section level1">
-<h1><span class="header-section-number">Chapter 2</span> Extracting road data</h1>
-<p>The road data for MV is extracted via the overpass API, the necessary overpass package is provided by <a href="https://github.com/hrbrmstr/overpass">hrbrmstr</a>.<br />
-I extract two types of roads, first the highways and then all primary roads. Especially, the second query is time consuming.</p>
-<div class="sourceCode"><pre class="sourceCode r"><code class="sourceCode r"><span class="kw">library</span>(overpass)
-<span class="kw">library</span>(rgdal)
-<span class="kw">library</span>(tidyverse)
-<span class="kw">library</span>(raster)
-<span class="kw">library</span>(sf)
-<span class="kw">library</span>(xgboost)
-<span class="kw">library</span>(keras)
-<span class="kw">library</span>(randomForest)
-<span class="kw">library</span>(data.table)
-<span class="kw">library</span>(geosampling)
-<span class="kw">library</span>(rgeos)
-<span class="kw">library</span>(knitr)
-<span class="kw">library</span>(magrittr)
-<span class="kw">options</span>(<span class="dt">stringsAsFactors =</span> <span class="ot">FALSE</span>)</code></pre></div>
-<pre><code>## Reading layer `gadm36_DEU_1&#39; from data source `C:\Users\xnicse\Dropbox\Projects\road_to_prediction\data\spatial\gadm\gadm36_DEU_1.shp&#39; using driver `ESRI Shapefile&#39;
-## Simple feature collection with 16 features and 10 fields
-## geometry type:  MULTIPOLYGON
-## dimension:      XY
-## bbox:           xmin: 5.866251 ymin: 47.27012 xmax: 15.04181 ymax: 55.05653
-## epsg (SRID):    4326
-## proj4string:    +proj=longlat +datum=WGS84 +no_defs</code></pre>
-<div class="figure" style="text-align: center"><span id="fig:bboxmv"></span>
-<img src="road_to_prediction_files/figure-html/bboxmv-1.png" alt="Mecklenburg-Vorpommern and bounding box in red." width="672" />
+<div id="evaluation-of-basic-models" class="section level1">
+<h1><span class="header-section-number">Chapter 6</span> Evaluation of Basic Models</h1>
+<div class="sourceCode"><pre class="sourceCode r"><code class="sourceCode r">all_simulations &lt;-<span class="st"> </span><span class="kw">list</span>(<span class="dt">OLS=</span>generated,<span class="dt">logit=</span>generated_glm,
+                      <span class="dt">RandomForest=</span>generated_rf,<span class="dt">XGBoost=</span>generated_xgb,
+                      <span class="dt">Keras=</span>generated_keras,<span class="dt">CNN=</span>generated_cnn)</code></pre></div>
+<p>Before evaluating, I remove one prediction of the neural network that predicts that all pixels are none road pixels.</p>
+<div class="sourceCode"><pre class="sourceCode r"><code class="sourceCode r">all_simulations_df &lt;-<span class="st"> </span><span class="kw">names</span>(all_simulations) <span class="op">%&gt;%</span><span class="st"> </span>
+<span class="st">  </span><span class="kw">lapply</span>(<span class="cf">function</span>(name) {
+    dat &lt;-<span class="st"> </span>all_simulations[[name]]
+    dat<span class="op">$</span>Method &lt;-<span class="st"> </span>name
+    dat <span class="op">%&gt;%</span><span class="st"> </span>
+<span class="st">      </span><span class="kw">filter</span>(<span class="op">!</span><span class="kw">is.na</span>(Value))
+  }) <span class="op">%&gt;%</span><span class="st"> </span>
+<span class="st">  </span><span class="kw">do.call</span>(rbind,.) <span class="op">%&gt;%</span><span class="st"> </span>
+<span class="st">  </span><span class="kw">filter</span>(Value<span class="op">&gt;</span><span class="dv">0</span><span class="op">&amp;</span>Value<span class="op">&lt;</span><span class="dv">1</span>)
+
+<span class="kw">nrow</span>(all_simulations_df)<span class="op">/</span><span class="dv">2</span></code></pre></div>
+<pre><code>## [1] 598</code></pre>
+<p>Figure <a href="evaluation-of-basic-models.html#fig:evalmodelsfor1scene">6.1</a> shows the accuracy for six different methods. All approaches yield similar results with the average accuracy for motorway prediction lying between 68% and 90%. The accuracy of predicting the none motorway pixels is slightly higher and the difference between the methods is more obvious.<br />
+In general OLS performs less well than the other three and the neural network has the greates span and even has some predictions below 70% for motorway. Random Forest and XGBoost yield the best results, especially when it comes to the “none motorway” prediction were both are consistently above 90%.</p>
+<div class="sourceCode"><pre class="sourceCode r"><code class="sourceCode r">all_simulations_df <span class="op">%&gt;%</span><span class="st"> </span>
+<span class="st">  </span><span class="kw">group_by</span>(Method,Type) <span class="op">%&gt;%</span><span class="st"> </span>
+<span class="st">  </span>dplyr<span class="op">::</span><span class="kw">summarise</span>(<span class="dt">mean=</span><span class="kw">round</span>(<span class="kw">mean</span>(Value),<span class="dv">4</span>)<span class="op">*</span><span class="dv">100</span>) <span class="op">%&gt;%</span><span class="st"> </span>
+<span class="st">  </span><span class="kw">spread</span>(Type,mean) <span class="op">%&gt;%</span><span class="st"> </span>
+<span class="st">  </span><span class="kw">kable</span>(<span class="dt">caption =</span> <span class="st">&quot;Accuracy for motorway and none motorway pixels for different methods in percent.&quot;</span>)</code></pre></div>
+<table>
+<caption><span id="tab:evalmodelsfor1scene">Table 6.1: </span>Accuracy for motorway and none motorway pixels for different methods in percent.</caption>
+<thead>
+<tr class="header">
+<th align="left">Method</th>
+<th align="right">Motorway</th>
+<th align="right">None Motorway</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td align="left">CNN</td>
+<td align="right">67.00</td>
+<td align="right">87.34</td>
+</tr>
+<tr class="even">
+<td align="left">Keras</td>
+<td align="right">78.08</td>
+<td align="right">84.51</td>
+</tr>
+<tr class="odd">
+<td align="left">logit</td>
+<td align="right">71.21</td>
+<td align="right">89.59</td>
+</tr>
+<tr class="even">
+<td align="left">OLS</td>
+<td align="right">78.31</td>
+<td align="right">84.15</td>
+</tr>
+<tr class="odd">
+<td align="left">RandomForest</td>
+<td align="right">80.44</td>
+<td align="right">92.07</td>
+</tr>
+<tr class="even">
+<td align="left">XGBoost</td>
+<td align="right">81.67</td>
+<td align="right">91.50</td>
+</tr>
+</tbody>
+</table>
+<div class="sourceCode"><pre class="sourceCode r"><code class="sourceCode r">all_simulations_df <span class="op">%&gt;%</span><span class="st"> </span>
+<span class="st">  </span><span class="kw">ggplot</span>() <span class="op">+</span>
+<span class="st">  </span><span class="kw">geom_violin</span>(<span class="kw">aes</span>(<span class="dt">x=</span>Type,<span class="dt">y=</span>Value,<span class="dt">fill=</span><span class="kw">as_factor</span>(Method))) <span class="op">+</span>
+<span class="st">  </span><span class="kw">ylab</span>(<span class="st">&quot;Accuracy&quot;</span>) <span class="op">+</span>
+<span class="st">  </span><span class="kw">guides</span>(<span class="dt">fill=</span><span class="kw">guide_legend</span>(<span class="dt">title=</span><span class="st">&quot;Methods&quot;</span>))</code></pre></div>
+<div class="figure" style="text-align: center"><span id="fig:evalmodelsfor1scene"></span>
+<img src="road_to_prediction_files/figure-html/evalmodelsfor1scene-1.png" alt="Comparison between OLS, Random Forest, XGBoost, and neural network (Keras)." width="672" />
 <p class="caption">
-Figure 2.1: Mecklenburg-Vorpommern and bounding box in red.
-</p>
-</div>
-<div class="sourceCode"><pre class="sourceCode r"><code class="sourceCode r">motorway_query &lt;-<span class="st"> &#39;[out:xml][timeout:100];</span>
-<span class="st">(</span>
-<span class="st">  node[&quot;highway&quot;=&quot;motorway&quot;](53,10.5,54.7,14.5);</span>
-<span class="st">  way[&quot;highway&quot;=&quot;motorway&quot;](53,10.5,54.7,14.5);</span>
-<span class="st">  relation[&quot;highway&quot;=&quot;motorway&quot;](53,10.5,54.7,14.5);</span>
-<span class="st">);</span>
-<span class="st">out body;</span>
-<span class="st">&gt;;</span>
-<span class="st">out skel qt;&#39;</span>
-  
-motorway_spatial &lt;-<span class="st"> </span><span class="kw">overpass_query</span>(motorway_query)
-
-primary_query &lt;-<span class="st"> &#39;[out:xml][timeout:100];</span>
-<span class="st">(</span>
-<span class="st">  node[&quot;highway&quot;=&quot;primary&quot;](53,10.5,54.7,14.5);</span>
-<span class="st">  way[&quot;highway&quot;=&quot;primary&quot;](53,10.5,54.7,14.5);</span>
-<span class="st">  relation[&quot;highway&quot;=&quot;primary&quot;](53,10.5,54.7,14.5);</span>
-<span class="st">);</span>
-<span class="st">out body;</span>
-<span class="st">&gt;;</span>
-<span class="st">out skel qt;&#39;</span>
-
-
-primary_spatial &lt;-<span class="st"> </span><span class="kw">overpass_query</span>(primary_query)</code></pre></div>
-<pre><code>## OGR data source with driver: ESRI Shapefile 
-## Source: &quot;C:\Users\xnicse\Dropbox\Projects\road_to_prediction\output\roads_in_mv\motorway.shp&quot;, layer: &quot;motorway&quot;
-## with 2355 features
-## It has 81 fields</code></pre>
-<pre><code>## OGR data source with driver: ESRI Shapefile 
-## Source: &quot;C:\Users\xnicse\Dropbox\Projects\road_to_prediction\output\roads_in_mv\primary.shp&quot;, layer: &quot;primary&quot;
-## with 9003 features
-## It has 271 fields</code></pre>
-<div class="figure" style="text-align: center"><span id="fig:highways"></span>
-<img src="road_to_prediction_files/figure-html/highways-1.png" alt="MV with motorways (red) and primary roads (blue)." width="672" />
-<p class="caption">
-Figure 2.2: MV with motorways (red) and primary roads (blue).
+Figure 6.1: Comparison between OLS, Random Forest, XGBoost, and neural network (Keras).
 </p>
 </div>
 
@@ -237,8 +246,8 @@ Figure 2.2: MV with motorways (red) and primary roads (blue).
           </div>
         </div>
       </div>
-<a href="introduction.html" class="navigation navigation-prev " aria-label="Previous page"><i class="fa fa-angle-left"></i></a>
-<a href="selecting-landsat-images.html" class="navigation navigation-next " aria-label="Next page"><i class="fa fa-angle-right"></i></a>
+<a href="basic-analysis.html" class="navigation navigation-prev " aria-label="Previous page"><i class="fa fa-angle-left"></i></a>
+<a href="open-questionsissues.html" class="navigation navigation-next " aria-label="Next page"><i class="fa fa-angle-right"></i></a>
     </div>
   </div>
 <script src="libs/gitbook-2.6.7/js/app.min.js"></script>

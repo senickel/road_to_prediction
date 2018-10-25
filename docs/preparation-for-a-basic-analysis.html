@@ -1,0 +1,339 @@
+<!DOCTYPE html>
+<html >
+
+<head>
+
+  <meta charset="UTF-8">
+  <meta http-equiv="X-UA-Compatible" content="IE=edge">
+  <title>Road to Prediction</title>
+  <meta name="description" content="Road to Prediction">
+  <meta name="generator" content="bookdown 0.7 and GitBook 2.6.7">
+
+  <meta property="og:title" content="Road to Prediction" />
+  <meta property="og:type" content="book" />
+  
+  
+  
+  <meta name="github-repo" content="senickel/road_to_prediction" />
+
+  <meta name="twitter:card" content="summary" />
+  <meta name="twitter:title" content="Road to Prediction" />
+  
+  
+  
+
+<meta name="author" content="Sebastian Nickel">
+
+
+<meta name="date" content="2018-10-25">
+
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black">
+  
+  
+<link rel="prev" href="selecting-landsat-images.html">
+<link rel="next" href="basic-analysis.html">
+<script src="libs/jquery-2.2.3/jquery.min.js"></script>
+<link href="libs/gitbook-2.6.7/css/style.css" rel="stylesheet" />
+<link href="libs/gitbook-2.6.7/css/plugin-bookdown.css" rel="stylesheet" />
+<link href="libs/gitbook-2.6.7/css/plugin-highlight.css" rel="stylesheet" />
+<link href="libs/gitbook-2.6.7/css/plugin-search.css" rel="stylesheet" />
+<link href="libs/gitbook-2.6.7/css/plugin-fontsettings.css" rel="stylesheet" />
+
+
+
+
+
+
+
+<script type="text/javascript">
+
+// toggle visibility of R source blocks in R Markdown output
+function toggle_R() {
+  var x = document.getElementsByClassName('r');
+  if (x.length == 0) return;
+  function toggle_vis(o) {
+    var d = o.style.display;
+    o.style.display = (d == 'block' || d == '') ? 'none':'block';
+  }
+
+  for (i = 0; i < x.length; i++) {
+    var y = x[i];
+    if (y.tagName.toLowerCase() === 'pre') toggle_vis(y);
+  }
+
+    var elem = document.getElementById("myButton1");
+    if (elem.value === "Hide Global") elem.value = "Show Global";
+    else elem.value = "Hide Global";
+}
+
+document.write('<input onclick="toggle_R();" type="button" value="Hide Global" id="myButton1" style="position: absolute; top: 10%; right: 2%; z-index: 200"></input>')
+
+</script>
+
+
+<style type="text/css">
+div.sourceCode { overflow-x: auto; }
+table.sourceCode, tr.sourceCode, td.lineNumbers, td.sourceCode {
+  margin: 0; padding: 0; vertical-align: baseline; border: none; }
+table.sourceCode { width: 100%; line-height: 100%; background-color: #f8f8f8; }
+td.lineNumbers { text-align: right; padding-right: 4px; padding-left: 4px; color: #aaaaaa; border-right: 1px solid #aaaaaa; }
+td.sourceCode { padding-left: 5px; }
+pre, code { background-color: #f8f8f8; }
+code > span.kw { color: #204a87; font-weight: bold; } /* Keyword */
+code > span.dt { color: #204a87; } /* DataType */
+code > span.dv { color: #0000cf; } /* DecVal */
+code > span.bn { color: #0000cf; } /* BaseN */
+code > span.fl { color: #0000cf; } /* Float */
+code > span.ch { color: #4e9a06; } /* Char */
+code > span.st { color: #4e9a06; } /* String */
+code > span.co { color: #8f5902; font-style: italic; } /* Comment */
+code > span.ot { color: #8f5902; } /* Other */
+code > span.al { color: #ef2929; } /* Alert */
+code > span.fu { color: #000000; } /* Function */
+code > span.er { color: #a40000; font-weight: bold; } /* Error */
+code > span.wa { color: #8f5902; font-weight: bold; font-style: italic; } /* Warning */
+code > span.cn { color: #000000; } /* Constant */
+code > span.sc { color: #000000; } /* SpecialChar */
+code > span.vs { color: #4e9a06; } /* VerbatimString */
+code > span.ss { color: #4e9a06; } /* SpecialString */
+code > span.im { } /* Import */
+code > span.va { color: #000000; } /* Variable */
+code > span.cf { color: #204a87; font-weight: bold; } /* ControlFlow */
+code > span.op { color: #ce5c00; font-weight: bold; } /* Operator */
+code > span.pp { color: #8f5902; font-style: italic; } /* Preprocessor */
+code > span.ex { } /* Extension */
+code > span.at { color: #c4a000; } /* Attribute */
+code > span.do { color: #8f5902; font-weight: bold; font-style: italic; } /* Documentation */
+code > span.an { color: #8f5902; font-weight: bold; font-style: italic; } /* Annotation */
+code > span.cv { color: #8f5902; font-weight: bold; font-style: italic; } /* CommentVar */
+code > span.in { color: #8f5902; font-weight: bold; font-style: italic; } /* Information */
+</style>
+
+</head>
+
+<body>
+
+
+
+  <div class="book without-animation with-summary font-size-2 font-family-1" data-basepath=".">
+
+    <div class="book-summary">
+      <nav role="navigation">
+
+<ul class="summary">
+<li class="chapter" data-level="" data-path="index.html"><a href="index.html"><i class="fa fa-check"></i>Prerequiste</a></li>
+<li class="chapter" data-level="1" data-path="introduction.html"><a href="introduction.html"><i class="fa fa-check"></i><b>1</b> Introduction</a></li>
+<li class="chapter" data-level="2" data-path="extracting-road-data.html"><a href="extracting-road-data.html"><i class="fa fa-check"></i><b>2</b> Extracting road data</a></li>
+<li class="chapter" data-level="3" data-path="selecting-landsat-images.html"><a href="selecting-landsat-images.html"><i class="fa fa-check"></i><b>3</b> Selecting Landsat images</a><ul>
+<li class="chapter" data-level="3.1" data-path="selecting-landsat-images.html"><a href="selecting-landsat-images.html#locating-the-scenes"><i class="fa fa-check"></i><b>3.1</b> Locating the scenes</a></li>
+<li class="chapter" data-level="3.2" data-path="selecting-landsat-images.html"><a href="selecting-landsat-images.html#reducing-the-scenes"><i class="fa fa-check"></i><b>3.2</b> Reducing the scenes</a></li>
+<li class="chapter" data-level="3.3" data-path="selecting-landsat-images.html"><a href="selecting-landsat-images.html#bulk-download-scenes"><i class="fa fa-check"></i><b>3.3</b> Bulk download scenes</a></li>
+</ul></li>
+<li class="chapter" data-level="4" data-path="preparation-for-a-basic-analysis.html"><a href="preparation-for-a-basic-analysis.html"><i class="fa fa-check"></i><b>4</b> Preparation for a basic analysis</a></li>
+<li class="chapter" data-level="5" data-path="basic-analysis.html"><a href="basic-analysis.html"><i class="fa fa-check"></i><b>5</b> Basic Analysis</a><ul>
+<li class="chapter" data-level="5.1" data-path="basic-analysis.html"><a href="basic-analysis.html#ordinary-least-squares"><i class="fa fa-check"></i><b>5.1</b> Ordinary Least Squares</a></li>
+<li class="chapter" data-level="5.2" data-path="basic-analysis.html"><a href="basic-analysis.html#logit"><i class="fa fa-check"></i><b>5.2</b> Logit</a></li>
+<li class="chapter" data-level="5.3" data-path="basic-analysis.html"><a href="basic-analysis.html#random-forest"><i class="fa fa-check"></i><b>5.3</b> Random Forest</a></li>
+<li class="chapter" data-level="5.4" data-path="basic-analysis.html"><a href="basic-analysis.html#xgboost"><i class="fa fa-check"></i><b>5.4</b> XGBoost</a></li>
+<li class="chapter" data-level="5.5" data-path="basic-analysis.html"><a href="basic-analysis.html#neural-network"><i class="fa fa-check"></i><b>5.5</b> Neural Network</a></li>
+<li class="chapter" data-level="5.6" data-path="basic-analysis.html"><a href="basic-analysis.html#convolutional-neural-network"><i class="fa fa-check"></i><b>5.6</b> Convolutional Neural Network</a></li>
+</ul></li>
+<li class="chapter" data-level="6" data-path="evaluation-of-basic-models.html"><a href="evaluation-of-basic-models.html"><i class="fa fa-check"></i><b>6</b> Evaluation of Basic Models</a></li>
+<li class="chapter" data-level="7" data-path="open-questionsissues.html"><a href="open-questionsissues.html"><i class="fa fa-check"></i><b>7</b> Open Questions/Issues</a></li>
+</ul>
+
+      </nav>
+    </div>
+
+    <div class="book-body">
+      <div class="body-inner">
+        <div class="book-header" role="navigation">
+          <h1>
+            <i class="fa fa-circle-o-notch fa-spin"></i><a href="./">Road to Prediction</a>
+          </h1>
+        </div>
+
+        <div class="page-wrapper" tabindex="-1" role="main">
+          <div class="page-inner">
+
+            <section class="normal" id="section-">
+<!--  <center><img src="logo/normal_3.png" width="300px"></center> -->
+<br><br><br><br>
+<div id="preparation-for-a-basic-analysis" class="section level1">
+<h1><span class="header-section-number">Chapter 4</span> Preparation for a basic analysis</h1>
+<p>First, I will look at one satellite picture to show the general procedure.</p>
+<p>According to the Landsat <a href="https://landsat.usgs.gov/landsat-surface-reflectance-quality-assessment">website</a> the pixel_qa band has a more accurate prediction for identifying clouds, cloud shadows, water, and snow.<br />
+When transforming spatial vector objects to raster objects, I always rely on the fasterize package which is written in C++ and a lot faster than the functions in the raster package.</p>
+<div class="sourceCode"><pre class="sourceCode r"><code class="sourceCode r">cloud_identification &lt;-<span class="st"> </span>
+<span class="st">  </span><span class="kw">raster</span>(<span class="st">&quot;E:/landsatscene/LT051940232011072701T1-SC20180926185810/LT05_L1TP_194023_20110727_20180312_01_T1_pixel_qa.tif&quot;</span>) 
+
+<span class="co"># crop raster to extent of MV</span>
+cloud_identification_cropped &lt;-<span class="st"> </span>
+<span class="st">  </span><span class="kw">crop</span>(cloud_identification,
+       <span class="kw">st_transform</span>(mv,<span class="dt">crs=</span><span class="kw">proj4string</span>(cloud_identification)))
+
+<span class="co"># transform MV Polygon to a raster</span>
+mv_raster &lt;-<span class="st"> </span>
+<span class="st">  </span>fasterize<span class="op">::</span><span class="kw">fasterize</span>(<span class="kw">st_transform</span>(mv,
+                                    <span class="dt">crs=</span><span class="kw">proj4string</span>(cloud_identification)),
+                       cloud_identification_cropped)
+
+<span class="co"># set all values that lie outside of MV to NA</span>
+cloud_identification_masked &lt;-<span class="st"> </span><span class="kw">mask</span>(cloud_identification_cropped,mv_raster)
+
+<span class="co"># extract the values of the cloud raster</span>
+cloud_identification_values &lt;-<span class="st"> </span><span class="kw">getValues</span>(cloud_identification_masked)
+
+<span class="co"># reference values for not having a clear sight on the ground</span>
+none_clear_values &lt;-<span class="st"> </span><span class="kw">c</span>(<span class="dv">96</span>, <span class="dv">112</span>,<span class="dv">160</span>,<span class="dv">176</span>,<span class="dv">224</span>,<span class="dv">68</span>,<span class="dv">72</span>,<span class="dv">80</span>,<span class="dv">96</span>, 
+                       <span class="dv">112</span>,<span class="dv">132</span>,<span class="dv">136</span>,<span class="dv">144</span>,<span class="dv">160</span>,<span class="dv">176</span>,<span class="dv">224</span>,<span class="dv">72</span>,
+                       <span class="dv">136</span>,<span class="dv">68</span>,<span class="dv">132</span>,<span class="dv">80</span>,<span class="dv">112</span>,<span class="dv">144</span>,<span class="dv">176</span>)
+
+<span class="co"># Create a mask vector. NA for each pixel outside of MV, 0 for if its inside</span>
+<span class="co"># but not a clear view, and 1 if its inside MV and there is a clear view</span>
+cloud_identification_values_<span class="dv">2</span> &lt;-<span class="st"> </span>
+<span class="st">  </span><span class="kw">ifelse</span>(cloud_identification_values <span class="op">%in%</span><span class="st"> </span>none_clear_values,<span class="dv">0</span>,
+         <span class="kw">ifelse</span>(<span class="kw">is.na</span>(cloud_identification_values),<span class="ot">NA</span>,<span class="dv">1</span>))
+
+<span class="co"># create raster from mask vector</span>
+cloud_identification_<span class="dv">2</span> &lt;-<span class="st"> </span><span class="kw">setValues</span>(cloud_identification_masked,
+                                    cloud_identification_values_<span class="dv">2</span>) 
+
+<span class="co"># transform motorways to a SpatialPolygon by buffering 1 meter around the lines</span>
+motorways_sf &lt;-<span class="st"> </span><span class="kw">spTransform</span>(motorways,
+                            <span class="kw">CRS</span>(<span class="kw">proj4string</span>(cloud_identification_<span class="dv">2</span>))) <span class="op">%&gt;%</span><span class="st"> </span>
+<span class="st">  </span><span class="kw">gBuffer</span>(<span class="dt">width =</span> <span class="dv">2</span>) <span class="op">%&gt;%</span><span class="st"> </span>
+<span class="st">  </span><span class="kw">st_as_sf</span>()
+
+<span class="co"># transform roads to a raster</span>
+motorways_raster &lt;-<span class="st"> </span>fasterize<span class="op">::</span><span class="kw">fasterize</span>(motorways_sf,
+                     cloud_identification_<span class="dv">2</span>)
+
+covered_by_road &lt;-<span class="st"> </span><span class="kw">mask</span>(cloud_identification_<span class="dv">2</span>,motorways_raster) <span class="op">%&gt;%</span><span class="st"> </span>
+<span class="st">  </span><span class="kw">getValues</span>() <span class="op">%&gt;%</span><span class="st"> </span>
+<span class="st">  </span><span class="kw">is.na</span>() <span class="op">%&gt;%</span><span class="st"> </span>
+<span class="st">  `</span><span class="dt">!</span><span class="st">`</span> <span class="op">%&gt;%</span><span class="st"> </span>
+<span class="st">  </span><span class="kw">which</span>()
+
+cloud_identification_values_<span class="dv">3</span> &lt;-<span class="st"> </span><span class="kw">ifelse</span>(<span class="kw">is.na</span>(cloud_identification_values_<span class="dv">2</span>),<span class="dv">0</span>,cloud_identification_values_<span class="dv">2</span>)</code></pre></div>
+<table>
+<caption><span id="tab:tableofcloud">Table 4.1: </span>Coverage for different values. <code>NA</code> are the rims of the picture, <code>0</code> is cloud covered, and <code>1</code> is free sight.</caption>
+<thead>
+<tr class="header">
+<th align="right">Percentage</th>
+<th align="right">Values</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td align="right">28.97</td>
+<td align="right">0</td>
+</tr>
+<tr class="even">
+<td align="right">28.17</td>
+<td align="right">1</td>
+</tr>
+<tr class="odd">
+<td align="right">42.86</td>
+<td align="right">NA</td>
+</tr>
+</tbody>
+</table>
+<p>The following code chunk loads each band, crops it to the extent of MV, and sets all pixel to NA that either have no undisturbed sight or lie outside of MV. The values are bound together in a rectengular data.frame with the added information whether the specific pixel is a motorway or not. All NAs are subsequently removed from the data.frame and all values are mean normalized.</p>
+<div class="sourceCode"><pre class="sourceCode r"><code class="sourceCode r">listed_raster &lt;-<span class="st"> </span><span class="kw">list.files</span>(<span class="st">&quot;E:/landsatscene/LT051940232011072701T1-SC20180926185810/&quot;</span>,<span class="dt">pattern=</span><span class="st">&quot;band[0-9].tif$&quot;</span>,<span class="dt">full.names =</span> <span class="ot">TRUE</span>)
+
+values_df &lt;-<span class="st"> </span><span class="kw">lapply</span>(listed_raster,<span class="cf">function</span>(ra1_path) {
+  
+  ra1 &lt;-<span class="st"> </span><span class="kw">raster</span>(ra1_path)
+  
+  ra1_cropped &lt;-<span class="st"> </span><span class="kw">crop</span>(ra1,<span class="kw">st_transform</span>(mv,<span class="dt">crs=</span><span class="kw">proj4string</span>(ra1)))
+  
+  ra1_cropped_masked &lt;-<span class="st"> </span><span class="kw">mask</span>(ra1_cropped,mv_raster)
+  
+  ra1_cropped_masked_cloudless &lt;-<span class="st"> </span><span class="kw">setValues</span>(ra1_cropped_masked,<span class="kw">ifelse</span>(<span class="kw">getValues</span>(ra1_cropped_masked)<span class="op">*</span>cloud_identification_values_<span class="dv">3</span><span class="op">==</span><span class="dv">0</span>,<span class="ot">NA</span>,<span class="kw">getValues</span>(ra1_cropped_masked)))
+  
+  <span class="kw">getValues</span>(ra1_cropped_masked_cloudless)
+  
+}) <span class="op">%&gt;%</span><span class="st"> </span>
+<span class="st">  </span><span class="kw">do.call</span>(cbind,.) <span class="op">%&gt;%</span><span class="st"> </span>
+<span class="st">  </span><span class="kw">as.data.frame</span>()
+
+values_df<span class="op">$</span>motorway &lt;-<span class="st"> </span><span class="dv">0</span>
+values_df<span class="op">$</span>motorway[covered_by_road] &lt;-<span class="st"> </span><span class="dv">1</span>
+
+identify_na &lt;-<span class="st"> </span><span class="kw">sapply</span>(<span class="kw">paste0</span>(<span class="st">&quot;V&quot;</span>,<span class="dv">1</span><span class="op">:</span><span class="dv">6</span>),<span class="cf">function</span>(x) {
+   values_df[,x] <span class="op">%&gt;%</span><span class="st"> </span>
+<span class="st">  </span><span class="kw">is.na</span>() <span class="op">%&gt;%</span><span class="st"> </span>
+<span class="st">  </span><span class="kw">which</span>()
+}) <span class="op">%&gt;%</span>
+<span class="st">  </span><span class="kw">unlist</span>() <span class="op">%&gt;%</span><span class="st"> </span>
+<span class="st">  </span><span class="kw">unique</span>()
+
+<span class="cf">if</span> (<span class="kw">length</span>(identify_na) <span class="op">&gt;</span><span class="st"> </span><span class="dv">0</span>) {
+  values_df &lt;-<span class="st"> </span>values_df <span class="op">%&gt;%</span><span class="st"> </span>
+<span class="st">    </span>dplyr<span class="op">::</span><span class="kw">slice</span>(<span class="op">-</span>identify_na)
+}
+
+norm_mean &lt;-<span class="st"> </span><span class="cf">function</span>(x) {
+  (x<span class="op">-</span><span class="kw">mean</span>(x))<span class="op">/</span>(<span class="kw">max</span>(x)<span class="op">-</span><span class="kw">min</span>(x))
+}
+
+values_df[,<span class="kw">paste0</span>(<span class="st">&quot;V&quot;</span>,<span class="dv">1</span><span class="op">:</span><span class="dv">6</span>)] &lt;-<span class="st"> </span>values_df[,<span class="kw">paste0</span>(<span class="st">&quot;V&quot;</span>,<span class="dv">1</span><span class="op">:</span><span class="dv">6</span>)] <span class="op">%&gt;%</span><span class="st"> </span>
+<span class="st">  </span><span class="kw">apply</span>(<span class="dv">2</span>,norm_mean)</code></pre></div>
+
+</div>
+            </section>
+
+          </div>
+        </div>
+      </div>
+<a href="selecting-landsat-images.html" class="navigation navigation-prev " aria-label="Previous page"><i class="fa fa-angle-left"></i></a>
+<a href="basic-analysis.html" class="navigation navigation-next " aria-label="Next page"><i class="fa fa-angle-right"></i></a>
+    </div>
+  </div>
+<script src="libs/gitbook-2.6.7/js/app.min.js"></script>
+<script src="libs/gitbook-2.6.7/js/lunr.js"></script>
+<script src="libs/gitbook-2.6.7/js/plugin-search.js"></script>
+<script src="libs/gitbook-2.6.7/js/plugin-sharing.js"></script>
+<script src="libs/gitbook-2.6.7/js/plugin-fontsettings.js"></script>
+<script src="libs/gitbook-2.6.7/js/plugin-bookdown.js"></script>
+<script src="libs/gitbook-2.6.7/js/jquery.highlight.js"></script>
+<script>
+gitbook.require(["gitbook"], function(gitbook) {
+gitbook.start({
+"sharing": {
+"github": false,
+"facebook": true,
+"twitter": true,
+"google": false,
+"linkedin": false,
+"weibo": false,
+"instapper": false,
+"vk": false,
+"all": ["facebook", "google", "twitter", "linkedin", "weibo", "instapaper"]
+},
+"fontsettings": {
+"theme": "white",
+"family": "sans",
+"size": 2
+},
+"edit": {
+"link": null,
+"text": null
+},
+"download": null,
+"toc": {
+"collapse": "subsection",
+"sharing": {
+"github": true
+}
+}
+});
+});
+</script>
+
+</body>
+
+</html>
