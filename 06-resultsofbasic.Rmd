@@ -35,8 +35,9 @@ nrow(all_simulations_df)/2
 ```
 
 
-Figure \@ref(fig:evalmodelsfor1scene) shows the accuracy for six different methods. All approaches yield similar results with the average accuracy for motorway prediction lying between 68% and 90%. The accuracy of predicting the none motorway pixels is slightly higher and the difference between the methods is more obvious.  
-In general OLS performs less well than the other three and the neural network has the greates span and even has some predictions below 70% for motorway. Random Forest and XGBoost yield the best results, especially when it comes to the "none motorway" prediction were both are consistently above 90%.
+Figure \@ref(fig:evalmodelsfor1scene) shows the accuracy for six different methods. Most approaches yield similar results with the average accuracy for motorway prediction lying between 68% and 90%. The CNN has a high variety of results which might be due to the fact that the size of the data is a lot smaller than it is for the other 5 methods.  
+The accuracy of predicting the none motorway pixels is slightly higher and the difference between the methods is more obvious.  
+Surprisingly, the logit is outperformed by the other non-CNN methods for the prediction of motorways. Also, the OLS performs less well than the neural network, XGBoost, and Random Forest. The neural network has the second highest variability and even has some predictions below 70% for motorways. Random Forest and XGBoost yield the best results, especially when it comes to the "none motorway" prediction were both are consistently above 90%.
 
 
 ```{r evalmodelsfor1scene,fig.align="center",fig.cap="Comparison between OLS, Random Forest, XGBoost, and neural network (Keras)."}
